@@ -2,7 +2,7 @@
 # Based on Omawrite by David Heinemeier Hansson (MIT).
 
 pkgname=omawrite-plus
-pkgver=0.2.0
+pkgver=0.2.1
 pkgrel=1
 pkgdesc='Omawrite with a Notes-style sidebar, titles and in-app storage'
 arch=('x86_64' 'aarch64')

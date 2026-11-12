@@ -2,10 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Window
 
-// The formatting strip across the top of the editor: a heading menu, the
-// text styles, and the three kinds of list. Every button is a shortcut the
-// editor already has; the bar only shows them, lit up when the caret sits in
-// that style. It never takes focus, so the caret stays where it was.
+// The formatting row along the top of the editor: a heading menu, the text
+// styles, and the three kinds of list. It is built like the sidebar's search
+// box (flat, square, a faint tint of the text colour, IBM Plex Mono), so the
+// two read as one row of controls. Every button is a shortcut the editor
+// already has; a button lights up when the caret sits in that style. It never
+// takes focus, so the caret stays where it was.
 Item {
     id: bar
 
@@ -18,9 +20,10 @@ Item {
     // Where the text column starts, so the buttons line up with the text.
     property real contentX: 0
 
-    readonly property color hairline: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.09)
-    readonly property color activeFill: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.11)
-    readonly property int buttonSize: Math.round(26 * textScale)
+    readonly property color groupFill: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.06)
+    readonly property color activeFill: Qt.rgba(textColor.r, textColor.g, textColor.b, 0.14)
+    readonly property int cell: Math.max(1, Math.round(30 * textScale))
+    readonly property int labelSize: Math.max(1, Math.round(14 * textScale))
 
     // What the caret's line is: its heading level (0 for body text) and list
     // kind ("bullet", "number", "check" or "").
@@ -59,14 +62,8 @@ Item {
         { level: 0, name: qsTr("Body"), keys: "Ctrl+Shift+B", scale: 1 }
     ]
 
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 1
-        color: bar.hairline
-    }
-
+    // One square cell: a letter in Plex Mono, or a line icon drawn like the
+    // footer's buttons.
     component FormatButton: Rectangle {
         id: button
 
@@ -81,8 +78,8 @@ Item {
 
         signal clicked()
 
-        width: bar.buttonSize
-        height: bar.buttonSize
+        width: bar.cell
+        height: bar.cell
         color: active ? bar.activeFill : "transparent"
         readonly property color inkColor: active || hit.containsMouse ? bar.textColor : bar.mutedColor
 
@@ -95,7 +92,8 @@ Item {
             visible: button.label.length > 0
             text: button.label
             color: button.inkColor
-            font.pixelSize: Math.round(15 * bar.textScale)
+            font.family: "IBM Plex Mono"
+            font.pixelSize: bar.labelSize
             font.bold: button.bold
             font.italic: button.italic
             font.underline: button.underline
@@ -108,7 +106,7 @@ Item {
             anchors.centerIn: parent
             // Drawn at the physical size and scaled back, so it stays sharp.
             readonly property real dpr: Screen.devicePixelRatio
-            readonly property real side: Math.round(16 * bar.textScale)
+            readonly property real side: Math.max(1, Math.round(16 * bar.textScale))
             width: side * dpr
             height: side * dpr
             scale: 1 / dpr
@@ -128,34 +126,28 @@ Item {
                 var rows = [3.5, 8, 12.5];
                 c.beginPath();
                 for (var i = 0; i < rows.length; ++i) {
-                    c.moveTo(6.5, rows[i]);
-                    c.lineTo(14.5, rows[i]);
+                    c.moveTo(7, rows[i]);
+                    c.lineTo(14, rows[i]);
                 }
                 c.stroke();
                 if (button.iconName === "bullet") {
                     for (var b = 0; b < rows.length; ++b) {
                         c.beginPath();
-                        c.arc(2.75, rows[b], 1.25, 0, Math.PI * 2);
+                        c.arc(3, rows[b], 1.2, 0, Math.PI * 2);
                         c.fill();
                     }
                 } else if (button.iconName === "number") {
-                    c.font = "bold 5px sans-serif";
+                    c.font = "bold 5px 'IBM Plex Mono'";
                     c.textAlign = "center";
                     c.textBaseline = "middle";
                     for (var n = 0; n < rows.length; ++n)
-                        c.fillText(String(n + 1), 2.75, rows[n] + 0.3);
+                        c.fillText(String(n + 1), 3, rows[n] + 0.3);
                 } else if (button.iconName === "check") {
-                    c.lineWidth = 1.1;
                     for (var k = 0; k < rows.length; ++k) {
                         c.beginPath();
-                        c.rect(1, rows[k] - 1.75, 3.5, 3.5);
+                        c.rect(1.5, rows[k] - 1.75, 3.5, 3.5);
                         c.stroke();
                     }
-                    c.beginPath();
-                    c.moveTo(1.6, rows[0]);
-                    c.lineTo(2.6, rows[0] + 1);
-                    c.lineTo(4.2, rows[0] - 1.2);
-                    c.stroke();
                 }
             }
 
@@ -174,110 +166,85 @@ Item {
         }
     }
 
-    component Divider: Rectangle {
-        width: 1
-        height: Math.round(bar.buttonSize * 0.6)
-        anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-        color: bar.hairline
+    // A tinted block holding a few cells, like the search box's background.
+    component Group: Rectangle {
+        default property alias cells: cellRow.data
+        width: cellRow.width
+        height: bar.cell
+        color: bar.groupFill
+        Row { id: cellRow }
     }
 
     Row {
         id: buttons
-        x: Math.max(0, bar.contentX - Math.round(6 * bar.textScale))
+        x: Math.max(0, bar.contentX)
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Math.round(2 * bar.textScale)
+        spacing: Math.round(8 * bar.textScale)
 
-        FormatButton {
-            id: headingButton
-            objectName: "headingButton"
-            label: "Aa"
-            active: bar.lineStyle.heading > 0 || headingMenu.opened
-            tooltip: qsTr("Title, Heading, Subheading, Body")
-            onClicked: headingMenu.opened ? headingMenu.close() : headingMenu.open()
-        }
-
-        Item { width: Math.round(6 * bar.textScale); height: 1 }
-        Divider {}
-        Item { width: Math.round(6 * bar.textScale); height: 1 }
-
-        FormatButton {
-            objectName: "boldButton"
-            label: "B"; bold: true
-            active: bar.inStyle("**")
-            tooltip: qsTr("Bold (Ctrl+B)")
-            onClicked: bar.editor.wrapSelection("**")
-        }
-        FormatButton {
-            objectName: "italicButton"
-            label: "I"; italic: true
-            active: bar.inStyle("*")
-            tooltip: qsTr("Italic (Ctrl+I)")
-            onClicked: bar.editor.wrapSelection("*")
-        }
-        FormatButton {
-            objectName: "underlineButton"
-            label: "U"; underline: true
-            active: bar.inStyle("<u>")
-            tooltip: qsTr("Underline (Ctrl+U)")
-            onClicked: bar.editor.toggleUnderline()
-        }
-        FormatButton {
-            objectName: "strikeButton"
-            label: "S"; strikeout: true
-            active: bar.inStyle("~~")
-            tooltip: qsTr("Strikethrough (Ctrl+Shift+X)")
-            onClicked: bar.editor.wrapSelection("~~")
+        Group {
+            FormatButton {
+                id: headingButton
+                objectName: "headingButton"
+                label: "Aa"
+                active: bar.lineStyle.heading > 0 || headingMenu.opened
+                tooltip: qsTr("Title, Heading, Subheading, Body")
+                onClicked: headingMenu.opened ? headingMenu.close() : headingMenu.open()
+            }
         }
 
-        Item { width: Math.round(6 * bar.textScale); height: 1 }
-        Divider {}
-        Item { width: Math.round(6 * bar.textScale); height: 1 }
+        Group {
+            FormatButton {
+                objectName: "boldButton"
+                label: "B"; bold: true
+                active: bar.inStyle("**")
+                tooltip: qsTr("Bold (Ctrl+B)")
+                onClicked: bar.editor.wrapSelection("**")
+            }
+            FormatButton {
+                objectName: "italicButton"
+                label: "I"; italic: true
+                active: bar.inStyle("*")
+                tooltip: qsTr("Italic (Ctrl+I)")
+                onClicked: bar.editor.wrapSelection("*")
+            }
+            FormatButton {
+                objectName: "underlineButton"
+                label: "U"; underline: true
+                active: bar.inStyle("<u>")
+                tooltip: qsTr("Underline (Ctrl+U)")
+                onClicked: bar.editor.toggleUnderline()
+            }
+            FormatButton {
+                objectName: "strikeButton"
+                label: "S"; strikeout: true
+                active: bar.inStyle("~~")
+                tooltip: qsTr("Strikethrough (Ctrl+Shift+X)")
+                onClicked: bar.editor.wrapSelection("~~")
+            }
+        }
 
-        FormatButton {
-            objectName: "bulletButton"
-            iconName: "bullet"
-            active: bar.lineStyle.list === "bullet"
-            tooltip: qsTr("Bulleted List (Ctrl+Shift+8)")
-            onClicked: bar.editor.toggleList("bullet")
-        }
-        FormatButton {
-            objectName: "numberButton"
-            iconName: "number"
-            active: bar.lineStyle.list === "number"
-            tooltip: qsTr("Numbered List (Ctrl+Shift+7)")
-            onClicked: bar.editor.toggleList("number")
-        }
-        FormatButton {
-            objectName: "checkButton"
-            iconName: "check"
-            active: bar.lineStyle.list === "check"
-            tooltip: qsTr("Checklist (Ctrl+Shift+L)")
-            onClicked: bar.editor.toggleList("check")
-        }
-    }
-
-    // The app's name signed in the top right corner, in Great Vibes.
-    Row {
-        id: signature
-        objectName: "signature"
-        anchors.right: parent.right
-        anchors.rightMargin: Math.round(18 * bar.textScale)
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: Math.round(1 * bar.textScale)
-
-        Text {
-            anchors.baseline: plusSign.baseline
-            text: "Omawrite"
-            color: bar.mutedColor
-            font.family: "Great Vibes"
-            font.pixelSize: Math.round(24 * bar.textScale)
-        }
-        Text {
-            id: plusSign
-            text: "+"
-            color: bar.mutedColor
-            font.family: "Great Vibes"
-            font.pixelSize: Math.round(32 * bar.textScale)
+        Group {
+            FormatButton {
+                objectName: "bulletButton"
+                iconName: "bullet"
+                active: bar.lineStyle.list === "bullet"
+                tooltip: qsTr("Bulleted List (Ctrl+Shift+8)")
+                onClicked: bar.editor.toggleList("bullet")
+            }
+            FormatButton {
+                objectName: "numberButton"
+                iconName: "number"
+                active: bar.lineStyle.list === "number"
+                tooltip: qsTr("Numbered List (Ctrl+Shift+7)")
+                onClicked: bar.editor.toggleList("number")
+            }
+            FormatButton {
+                objectName: "checkButton"
+                iconName: "check"
+                active: bar.lineStyle.list === "check"
+                tooltip: qsTr("Checklist (Ctrl+Shift+L)")
+                onClicked: bar.editor.toggleList("check")
+            }
         }
     }
 
@@ -286,8 +253,8 @@ Item {
         id: headingMenu
         objectName: "headingMenu"
         x: buttons.x
-        y: bar.height
-        padding: 4
+        y: (bar.height + bar.cell) / 2 + Math.round(4 * bar.textScale)
+        padding: 0
         modal: false
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
@@ -312,8 +279,10 @@ Item {
 
         background: Rectangle {
             color: bar.pageColor
-            border.width: 1
-            border.color: Qt.rgba(bar.textColor.r, bar.textColor.g, bar.textColor.b, 0.18)
+            Rectangle {
+                anchors.fill: parent
+                color: bar.groupFill
+            }
         }
 
         contentItem: Column {
@@ -330,25 +299,27 @@ Item {
                 Rectangle {
                     required property var modelData
                     required property int index
-                    width: Math.round(250 * bar.textScale)
-                    height: Math.round(Math.max(30, 18 * modelData.scale + 14) * bar.textScale)
+                    width: Math.round(270 * bar.textScale)
+                    height: Math.round(Math.max(34, 16 * modelData.scale + 16) * bar.textScale)
                     color: headingMenu.highlighted === index ? bar.activeFill : "transparent"
 
                     Text {
                         anchors.left: parent.left
-                        anchors.leftMargin: Math.round(10 * bar.textScale)
+                        anchors.leftMargin: Math.round(12 * bar.textScale)
                         anchors.verticalCenter: parent.verticalCenter
                         text: modelData.name
                         color: bar.textColor
-                        font.pixelSize: Math.round(15 * modelData.scale * bar.textScale)
+                        font.family: "IBM Plex Mono"
+                        font.pixelSize: Math.round(14 * modelData.scale * bar.textScale)
                         font.bold: modelData.level > 0
                     }
                     Text {
                         anchors.right: parent.right
-                        anchors.rightMargin: Math.round(10 * bar.textScale)
+                        anchors.rightMargin: Math.round(12 * bar.textScale)
                         anchors.verticalCenter: parent.verticalCenter
                         text: modelData.keys
                         color: bar.mutedColor
+                        font.family: "IBM Plex Mono"
                         font.pixelSize: Math.round(11 * bar.textScale)
                     }
                     MouseArea {

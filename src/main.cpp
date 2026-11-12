@@ -18,7 +18,7 @@
 #include "notes.h"
 #include "systemtheme.h"
 
-#define OMAWRITE_VERSION "0.2.0"
+#define OMAWRITE_VERSION "0.2.1"
 
 int main(int argc, char *argv[]) {
     // Answered before the application exists, so they need no display.

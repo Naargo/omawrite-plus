@@ -587,12 +587,45 @@ ApplicationWindow {
             color: sidebar.hairline
         }
 
+        // The app's name signed at the top of the sidebar, in Great Vibes,
+        // on the same row as the formatting bar.
         Item {
-            id: sidebarHeader
+            id: sidebarBrand
+            objectName: "signature"
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.topMargin: win.scaledSize(14)
+            anchors.leftMargin: win.scaledSize(14)
+            height: win.scaledSize(32)
+
+            Text {
+                id: brandName
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.verticalCenterOffset: win.scaledSize(2)
+                text: "Omawrite"
+                color: win.mutedColor
+                font.family: "Great Vibes"
+                font.pixelSize: win.scaledSize(28)
+            }
+            Text {
+                anchors.left: brandName.right
+                anchors.leftMargin: win.scaledSize(1)
+                anchors.baseline: brandName.baseline
+                text: "+"
+                color: win.mutedColor
+                font.family: "Great Vibes"
+                font.pixelSize: win.scaledSize(36)
+            }
+        }
+
+        Item {
+            id: sidebarHeader
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: sidebarBrand.bottom
+            anchors.topMargin: win.scaledSize(10)
             anchors.leftMargin: win.scaledSize(12)
             anchors.rightMargin: win.scaledSize(12)
             height: win.scaledSize(32)
@@ -766,10 +799,9 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.leftMargin: 24
             anchors.rightMargin: 24
-            // Inset the scrolling area by the footer strip at both ends, so
-            // scrolled text never runs under the footer buttons, status, or
-            // word count, and stops just as far short of the top edge.
-            anchors.topMargin: win.footerHeight
+            // Text scrolls in below the formatting bar, and stops short of
+            // the footer buttons, status and word count at the bottom.
+            anchors.topMargin: formatBar.y + formatBar.height + win.scaledSize(8)
             anchors.bottomMargin: win.footerHeight
             clip: true
             contentWidth: width
@@ -1615,9 +1647,10 @@ ApplicationWindow {
             id: formatBar
             objectName: "formatBar"
             anchors.top: parent.top
+            anchors.topMargin: win.scaledSize(14)
             anchors.left: parent.left
             anchors.right: parent.right
-            height: win.footerHeight
+            height: win.scaledSize(32)
             editor: editor
             textColor: win.textColor
             mutedColor: win.mutedColor
