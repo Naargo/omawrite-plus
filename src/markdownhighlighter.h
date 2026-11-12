@@ -22,7 +22,7 @@ public:
         int length;
     };
 
-    enum class InlineKind { Bold, Italic, Strikethrough, Link };
+    enum class InlineKind { Bold, Italic, Strikethrough, Underline, Link };
 
     // Carried from block to block so a fenced run of code knows it is inside
     // one. Stored on the block, which is where Backend reads it.

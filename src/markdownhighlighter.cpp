@@ -204,7 +204,7 @@ void MarkdownHighlighter::highlightBlock(const QString &text) {
         highlightMarkers(text);
         if (text.contains(QLatin1Char('`')) || text.contains(QLatin1Char('*'))
             || text.contains(QLatin1Char('_')) || text.contains(QLatin1Char('['))
-            || text.contains(QLatin1Char('~'))) {
+            || text.contains(QLatin1Char('~')) || text.contains(QLatin1Char('<'))) {
             highlightInline(text);
         }
     }
@@ -390,6 +390,17 @@ void MarkdownHighlighter::highlightMarkers(const QString &text) {
         const QRegularExpressionMatch list = listRe.match(text);
         if (list.hasMatch())
             setFormat(0, list.capturedLength(1), m_markerFormat);
+
+        // A checklist box reads as part of the bullet, and a ticked item
+        // fades back the way a done item does in Notes.
+        static const QRegularExpression taskRe(
+            QStringLiteral("^(\\s*[-+*]\\s+\\[([ xX])\\]\\s?)(.*)$"));
+        const QRegularExpressionMatch task = taskRe.match(text);
+        if (task.hasMatch()) {
+            setFormat(0, task.capturedLength(1), m_markerFormat);
+            if (task.captured(2) != QLatin1String(" "))
+                setFormat(task.capturedStart(3), task.capturedLength(3), m_markerFormat);
+        }
     }
 
     if (isThematicBreak(text))
@@ -429,6 +440,11 @@ void MarkdownHighlighter::highlightInline(const QString &text) {
         format.setFontStrikeOut(true);
         return format;
     }();
+    static const QTextCharFormat underlined = [] {
+        QTextCharFormat format;
+        format.setFontUnderline(true);
+        return format;
+    }();
     QList<InlineMarkup> markup = inlineMarkup(text);
     std::stable_sort(markup.begin(), markup.end(),
                      [](const InlineMarkup &a, const InlineMarkup &b) {
@@ -439,6 +455,7 @@ void MarkdownHighlighter::highlightInline(const QString &text) {
             item.kind == InlineKind::Bold ? m_boldFormat
             : item.kind == InlineKind::Italic ? m_italicFormat
             : item.kind == InlineKind::Strikethrough ? struck
+            : item.kind == InlineKind::Underline ? underlined
                                                      : m_linkFormat;
         for (int i = item.content.start; i < item.content.start + item.content.length; ++i) {
             if (!inCode[i] || item.kind == InlineKind::Strikethrough)
@@ -496,7 +513,8 @@ QList<MarkdownHighlighter::Span> MarkdownHighlighter::codeSpans(const QString &t
 QList<MarkdownHighlighter::InlineMarkup> MarkdownHighlighter::inlineMarkup(const QString &text) {
     QList<InlineMarkup> markup;
     if (!text.contains(QLatin1Char('*')) && !text.contains(QLatin1Char('_'))
-            && !text.contains(QLatin1Char('[')) && !text.contains(QLatin1Char('~'))) {
+            && !text.contains(QLatin1Char('[')) && !text.contains(QLatin1Char('~'))
+            && !text.contains(QLatin1Char('<'))) {
         return markup;
     }
     if (isThematicBreak(text))
@@ -590,6 +608,18 @@ QList<MarkdownHighlighter::InlineMarkup> MarkdownHighlighter::inlineMarkup(const
         const Span whole = span(match, 0);
         append({InlineKind::Strikethrough, span(match, 1),
                 {{whole.start, 2}, {whole.start + whole.length - 2, 2}}});
+    }
+
+    // Markdown has no underline of its own, so it is the HTML tag that
+    // Markdown passes through: <u>words</u>.
+    static const QRegularExpression underlineRe(
+        QStringLiteral("<u>(?!\\s)(.*?\\S)</u>"));
+    QRegularExpressionMatchIterator underlineMatches = underlineRe.globalMatch(unclaimed);
+    while (underlineMatches.hasNext()) {
+        const QRegularExpressionMatch match = underlineMatches.next();
+        const Span whole = span(match, 0);
+        append({InlineKind::Underline, span(match, 1),
+                {{whole.start, 3}, {whole.start + whole.length - 4, 4}}});
     }
 
     static const QRegularExpression linkRe(

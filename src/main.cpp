@@ -9,18 +9,44 @@
 #include <QUrl>
 #include <QWindow>
 #include <QFile>
+#include <QDir>
+#include <QStandardPaths>
+#include <QTextStream>
 
 #include "backend.h"
 #include "cli.h"
+#include "notes.h"
 #include "systemtheme.h"
 
-#define OMAWRITE_VERSION "0.7.2"
+#define OMAWRITE_VERSION "0.1.0"
 
 int main(int argc, char *argv[]) {
     // Answered before the application exists, so they need no display.
     if (const std::optional<int> exitCode =
             Cli::handleArguments(argc, argv, QStringLiteral(OMAWRITE_VERSION)))
         return *exitCode;
+
+    // `omawrite-plus import FILE...` copies Markdown files in as notes,
+    // without a window, so a script or an agent can fill the library.
+    if (argc > 2 && QString::fromLocal8Bit(argv[1]) == QLatin1String("import")) {
+        QCoreApplication core(argc, argv);
+        core.setOrganizationName(QStringLiteral("Omacom"));
+        core.setApplicationName(QStringLiteral("omawrite-plus"));
+        Notes notes(nullptr, QDir(QStandardPaths::writableLocation(
+                                      QStandardPaths::AppDataLocation)).filePath(QStringLiteral("notes")));
+        int failures = 0;
+        for (int index = 2; index < argc; ++index) {
+            QString error;
+            const QString path = QString::fromLocal8Bit(argv[index]);
+            if (notes.importFile(path, &error).isEmpty()) {
+                QTextStream(stderr) << error << '\n';
+                ++failures;
+            } else {
+                QTextStream(stdout) << QStringLiteral("Imported %1\n").arg(path);
+            }
+        }
+        return failures == 0 ? 0 : 1;
+    }
 
     // Omarchy asks Qt for GTK 3 dialogs, which run inside this process, and a
     // long-standing GTK 3 file chooser assertion aborts the whole app, unsaved
@@ -30,10 +56,10 @@ int main(int argc, char *argv[]) {
         qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
 
     QApplication app(argc, argv);
-    app.setApplicationName(QStringLiteral("omawrite"));
+    app.setApplicationName(QStringLiteral("omawrite-plus"));
     app.setApplicationVersion(QStringLiteral(OMAWRITE_VERSION));
-    app.setDesktopFileName(QStringLiteral("omawrite"));
-    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("omawrite")));
+    app.setDesktopFileName(QStringLiteral("omawrite-plus"));
+    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("omawrite-plus")));
 
     QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/IBMPlexMono-Regular.ttf"));
     QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/IBMPlexMono-Italic.ttf"));
@@ -80,19 +106,21 @@ int main(int argc, char *argv[]) {
             qWarning().noquote() << warning.toString();
     });
     engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+    Notes notes(&backend,
+                QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))
+                    .filePath(QStringLiteral("notes")));
+    engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
 
     engine.load(QUrl(QStringLiteral("qrc:/Main.qml")));
     if (engine.rootObjects().isEmpty()) {
-        qCritical() << "Could not load the Omawrite interface; resource available:"
+        qCritical() << "Could not load the Omawrite+ interface; resource available:"
                     << QFile::exists(QStringLiteral(":/Main.qml"));
         return -1;
     }
 
     backend.setParentWindow(qobject_cast<QWindow *>(engine.rootObjects().constFirst()));
 
-    const QStringList args = app.arguments();
-    if (args.size() > 1)
-        backend.openOrStartFile(QUrl::fromLocalFile(args.at(1)));
+    notes.start();
 
     return app.exec();
 }

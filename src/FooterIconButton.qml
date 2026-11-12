@@ -60,6 +60,30 @@ Item {
                 context.lineTo(13, 13.5);
                 context.moveTo(5, 9.5);
                 context.lineTo(11, 9.5);
+            } else if (control.iconName === "new") {
+                // A page with a pencil across it, as on a notes app's new button.
+                context.moveTo(8, 2.5);
+                context.lineTo(2.5, 2.5);
+                context.lineTo(2.5, 13.5);
+                context.lineTo(13.5, 13.5);
+                context.lineTo(13.5, 8);
+                context.moveTo(6.5, 9.5);
+                context.lineTo(7, 7.5);
+                context.lineTo(12, 2.5);
+                context.lineTo(13.5, 4);
+                context.lineTo(8.5, 9);
+                context.closePath();
+            } else if (control.iconName === "trash") {
+                context.moveTo(2.5, 4.5);
+                context.lineTo(13.5, 4.5);
+                context.moveTo(6, 4.5);
+                context.lineTo(6, 2.5);
+                context.lineTo(10, 2.5);
+                context.lineTo(10, 4.5);
+                context.moveTo(4, 4.5);
+                context.lineTo(4.8, 13.5);
+                context.lineTo(11.2, 13.5);
+                context.lineTo(12, 4.5);
             } else {
                 context.moveTo(2.5, 13);
                 context.lineTo(2.5, 3.5);

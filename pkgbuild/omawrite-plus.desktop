@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Omawrite+
+GenericName=Notes
+Comment=Markdown notes with a sidebar, titles and autosave
+Exec=omawrite-plus
+Icon=omawrite-plus
+Terminal=false
+Categories=Office;TextEditor;
+Keywords=markdown;write;notes;text;editor;
+StartupWMClass=omawrite-plus

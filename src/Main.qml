@@ -13,7 +13,7 @@ ApplicationWindow {
     minimumWidth: 720
     minimumHeight: 520
     visible: true
-    title: (backend.modified ? "* " : "") + backend.fileName + " - Omawrite"
+    title: backend.fileName + " - Omawrite+"
 
     readonly property bool darkMode: backend.darkMode
     readonly property color pageColor: backend.themeBackground
@@ -32,8 +32,12 @@ ApplicationWindow {
     // a tiling compositor can resize the window below its minimum width.
     readonly property int editorWidth: Math.min(
         Math.round(writerFontMetrics.averageCharacterWidth * 65),
-        Math.max(360, width - Math.round(writerFontMetrics.averageCharacterWidth * 20)),
-        Math.max(0, width - 48))
+        Math.max(360, editorArea.width - Math.round(writerFontMetrics.averageCharacterWidth * 20)),
+        Math.max(0, editorArea.width - 48))
+    property bool sidebarOpen: true
+    readonly property int sidebarWidth: scaledSize(270)
+    // The ids the sidebar shows: every note, or the ones matching the search.
+    property var visibleNoteIds: []
     property bool closeConfirmed: false
     property bool searchOpen: false
     property bool searchUpdating: false
@@ -50,6 +54,12 @@ ApplicationWindow {
 
     onClosing: function(close) {
         if (closeConfirmed || !backend.modified)
+            return;
+
+        // Notes save themselves, so closing just writes the last few words.
+        // Only a save that fails stops the window to ask.
+        backend.save();
+        if (!backend.modified)
             return;
 
         close.accepted = false;
@@ -76,6 +86,53 @@ ApplicationWindow {
             close();
         } else if (action === "open") {
             backend.open(pendingOpenUrl);
+        }
+    }
+
+    function refreshNoteFilter() {
+        visibleNoteIds = notes.search(noteSearchField.text);
+    }
+
+    function newNote() {
+        notes.createNote();
+        titleInput.forceActiveFocus();
+    }
+
+    // Steps through the notes as the sidebar lists them.
+    function stepNote(direction) {
+        var ids = visibleNoteIds;
+        if (ids.length === 0)
+            return;
+        var index = ids.indexOf(notes.currentId);
+        var next = index < 0 ? 0 : Math.max(0, Math.min(ids.length - 1, index + direction));
+        notes.openNote(ids[next]);
+    }
+
+    function askToDeleteNote(id) {
+        deleteNoteDialog.noteId = id;
+        deleteNoteDialog.noteTitle = notes.displayTitle(id);
+        deleteNoteDialog.open();
+    }
+
+    function focusNoteSearch() {
+        sidebarOpen = true;
+        noteSearchField.forceActiveFocus();
+        noteSearchField.selectAll();
+    }
+
+    Connections {
+        target: notes
+
+        function onCurrentChanged() {
+            if (titleInput.text !== notes.currentTitle)
+                titleInput.text = notes.currentTitle;
+            editorFlick.scrollTo(0);
+            noteList.positionViewAtIndex(Math.max(0, win.visibleNoteIds.indexOf(notes.currentId)),
+                                         ListView.Contain);
+        }
+
+        function onNotesChanged() {
+            win.refreshNoteFilter();
         }
     }
 
@@ -213,6 +270,37 @@ ApplicationWindow {
     }
 
     Shortcut {
+        sequence: "Ctrl+U"
+        context: Qt.WindowShortcut
+        onActivated: editor.toggleUnderline()
+    }
+
+    Shortcut {
+        sequences: ["Ctrl+Shift+8", "Ctrl+*", "Ctrl+Shift+*"]
+        context: Qt.WindowShortcut
+        onActivated: editor.toggleList("bullet")
+    }
+
+    Shortcut {
+        sequences: ["Ctrl+Shift+7", "Ctrl+&", "Ctrl+Shift+&"]
+        context: Qt.WindowShortcut
+        onActivated: editor.toggleList("number")
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+L"
+        context: Qt.WindowShortcut
+        onActivated: editor.toggleList("check")
+    }
+
+    Shortcut {
+        sequences: ["Ctrl+Return", "Ctrl+Enter"]
+        context: Qt.WindowShortcut
+        enabled: editor.activeFocus
+        onActivated: editor.toggleCheck()
+    }
+
+    Shortcut {
         sequence: "Ctrl+K"
         context: Qt.WindowShortcut
         onActivated: editor.insertLink()
@@ -241,18 +329,38 @@ ApplicationWindow {
     }
 
     Shortcut {
-        sequence: "Ctrl+O"
-        onActivated: backend.openDialog()
-    }
-
-    Shortcut {
         sequence: "Ctrl+N"
-        onActivated: backend.newWindow()
+        onActivated: win.newNote()
     }
 
     Shortcut {
-        sequence: "Ctrl+Shift+S"
-        onActivated: backend.saveAsDialog()
+        sequences: ["Alt+Down", "Ctrl+PgDown"]
+        onActivated: win.stepNote(1)
+    }
+
+    Shortcut {
+        sequences: ["Alt+Up", "Ctrl+PgUp"]
+        onActivated: win.stepNote(-1)
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+F"
+        onActivated: win.focusNoteSearch()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+\\"
+        onActivated: win.sidebarOpen = !win.sidebarOpen
+    }
+
+    Shortcut {
+        sequence: "Ctrl+L"
+        onActivated: titleInput.forceActiveFocus()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+Backspace"
+        onActivated: win.askToDeleteNote(notes.currentId)
     }
 
     Shortcut {
@@ -273,13 +381,13 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+Z"
         context: Qt.WindowShortcut
-        onActivated: editor.undo()
+        onActivated: editor.undoKeepingPlace(false)
     }
 
     Shortcut {
         sequences: ["Ctrl+Shift+Z", "Ctrl+Y"]
         context: Qt.WindowShortcut
-        onActivated: editor.redo()
+        onActivated: editor.undoKeepingPlace(true)
     }
 
     Shortcut {
@@ -377,6 +485,23 @@ ApplicationWindow {
         onCancelRequested: win.pendingAction = ""
     }
 
+    DeleteNoteDialog {
+        id: deleteNoteDialog
+        darkMode: win.darkMode
+        textScale: win.textScale
+        textColor: win.textColor
+        strongTextColor: win.textColor
+        activeButtonColor: backend.themeAccent
+        containerWidth: win.width
+        containerHeight: win.height
+
+        onDeleteRequested: function(id) {
+            notes.deleteNote(id);
+            editor.forceActiveFocus();
+        }
+        onClosed: if (!titleInput.activeFocus && !noteSearchField.activeFocus) editor.forceActiveFocus()
+    }
+
     ExternalChangeDialog {
         id: externalChangeDialog
         darkMode: win.darkMode
@@ -401,8 +526,215 @@ ApplicationWindow {
         containerHeight: win.height
     }
 
+    // The notes list, newest first, like the middle column of Notes on the
+    // Mac. Ctrl+\\ hides it for writing with nothing beside the page.
+    Rectangle {
+        id: sidebar
+        objectName: "noteSidebar"
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: win.sidebarOpen ? win.sidebarWidth : 0
+        visible: win.sidebarOpen
+        clip: true
+        color: win.darkMode ? Qt.darker(win.pageColor, 1.18) : Qt.darker(win.pageColor, 1.035)
+
+        readonly property color accent: backend.themeAccent
+        readonly property color hairline: Qt.rgba(win.textColor.r, win.textColor.g,
+                                                  win.textColor.b, 0.09)
+
+        function formatWhen(when) {
+            var now = new Date();
+            if (when.toDateString() === now.toDateString())
+                return Qt.formatTime(when, Qt.locale().timeFormat(Locale.ShortFormat));
+            var yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+            if (when.toDateString() === yesterday.toDateString())
+                return qsTr("Yesterday");
+            if (when.getFullYear() === now.getFullYear())
+                return Qt.formatDate(when, "d MMM");
+            return Qt.formatDate(when, Qt.locale().dateFormat(Locale.ShortFormat));
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: 1
+            color: sidebar.hairline
+        }
+
+        Item {
+            id: sidebarHeader
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.topMargin: win.scaledSize(14)
+            anchors.leftMargin: win.scaledSize(12)
+            anchors.rightMargin: win.scaledSize(12)
+            height: win.scaledSize(32)
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: newNoteButton.left
+                anchors.rightMargin: win.scaledSize(12)
+                anchors.verticalCenter: parent.verticalCenter
+                height: win.scaledSize(30)
+                color: Qt.rgba(win.textColor.r, win.textColor.g, win.textColor.b, 0.06)
+                border.color: noteSearchField.activeFocus ? sidebar.accent : "transparent"
+                radius: 0
+
+                TextInput {
+                    id: noteSearchField
+                    objectName: "noteSearchField"
+                    anchors.fill: parent
+                    anchors.leftMargin: win.scaledSize(9)
+                    anchors.rightMargin: win.scaledSize(9)
+                    verticalAlignment: TextInput.AlignVCenter
+                    clip: true
+                    color: win.textColor
+                    selectionColor: win.selectionFill
+                    selectedTextColor: win.selectionTextColor
+                    selectByMouse: true
+                    font.family: "IBM Plex Mono"
+                    font.pixelSize: win.scaledSize(12)
+                    onTextChanged: win.refreshNoteFilter()
+
+                    function leave() {
+                        editor.forceActiveFocus();
+                    }
+
+                    Keys.onEscapePressed: {
+                        text = "";
+                        leave();
+                    }
+                    function openFirst() {
+                        if (win.visibleNoteIds.length > 0)
+                            notes.openNote(win.visibleNoteIds[0]);
+                        leave();
+                    }
+
+                    Keys.onReturnPressed: openFirst()
+                    Keys.onEnterPressed: openFirst()
+                    Keys.onDownPressed: openFirst()
+
+                    Text {
+                        anchors.fill: parent
+                        verticalAlignment: Text.AlignVCenter
+                        text: qsTr("Search")
+                        visible: noteSearchField.length === 0
+                        color: win.mutedColor
+                        font: noteSearchField.font
+                    }
+                }
+            }
+
+            FooterIconButton {
+                id: newNoteButton
+                objectName: "newNoteButton"
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                iconName: "new"
+                iconColor: win.mutedColor
+                tooltip: qsTr("New Note (Ctrl+N)")
+                onClicked: win.newNote()
+            }
+        }
+
+        ListView {
+            id: noteList
+            objectName: "noteList"
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: sidebarHeader.bottom
+            anchors.bottom: parent.bottom
+            anchors.topMargin: win.scaledSize(10)
+            anchors.leftMargin: win.scaledSize(6)
+            anchors.rightMargin: win.scaledSize(7)
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            model: {
+                // Rebuilt from the notes list each time it or the search
+                // changes, so titles, previews and order stay current.
+                var all = notes.notes;
+                var shown = win.visibleNoteIds;
+                return all.filter(function(note) { return shown.indexOf(note.id) >= 0; });
+            }
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+            delegate: Rectangle {
+                id: noteRow
+                required property var modelData
+                readonly property bool current: modelData.id === notes.currentId
+                width: ListView.view.width
+                height: win.scaledSize(62)
+                color: current
+                    ? Qt.rgba(sidebar.accent.r, sidebar.accent.g, sidebar.accent.b, 0.22)
+                    : rowHover.hovered
+                        ? Qt.rgba(win.textColor.r, win.textColor.g, win.textColor.b, 0.05)
+                        : "transparent"
+
+                HoverHandler { id: rowHover }
+
+                TapHandler {
+                    onTapped: {
+                        notes.openNote(noteRow.modelData.id);
+                        editor.forceActiveFocus();
+                    }
+                }
+
+                Column {
+                    anchors.left: parent.left
+                    anchors.right: deleteButton.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: win.scaledSize(12)
+                    anchors.rightMargin: win.scaledSize(8)
+                    spacing: win.scaledSize(4)
+
+                    Label {
+                        width: parent.width
+                        text: noteRow.modelData.title
+                        textFormat: Text.PlainText
+                        elide: Text.ElideRight
+                        color: win.textColor
+                        font.family: "IBM Plex Mono"
+                        font.pixelSize: win.scaledSize(13)
+                        font.bold: true
+                    }
+
+                    Label {
+                        width: parent.width
+                        textFormat: Text.PlainText
+                        text: sidebar.formatWhen(noteRow.modelData.modified)
+                              + "   " + (noteRow.modelData.preview.length > 0
+                                         ? noteRow.modelData.preview : qsTr("No additional text"))
+                        elide: Text.ElideRight
+                        color: win.mutedColor
+                        font.family: "IBM Plex Mono"
+                        font.pixelSize: win.scaledSize(11)
+                    }
+                }
+
+                FooterIconButton {
+                    id: deleteButton
+                    anchors.right: parent.right
+                    anchors.rightMargin: win.scaledSize(10)
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: rowHover.hovered
+                    iconName: "trash"
+                    iconColor: win.mutedColor
+                    tooltip: qsTr("Delete Note")
+                    onClicked: win.askToDeleteNote(noteRow.modelData.id)
+                }
+            }
+        }
+    }
+
     Item {
-        anchors.fill: parent
+        id: editorArea
+        anchors.left: sidebar.right
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
 
         Flickable {
             id: editorFlick
@@ -630,13 +962,47 @@ ApplicationWindow {
                     scrollTo(Math.max(0, cursorTop - margin));
             }
 
+            // The note's title, which is also its name in the sidebar. Enter
+            // or Down moves on into the text.
+            TextInput {
+                id: titleInput
+                objectName: "titleInput"
+                x: editor.x
+                y: Math.max(0, Math.max(42, Math.round(win.height * 0.05)) - win.footerHeight)
+                width: editor.width
+                color: win.textColor
+                selectedTextColor: win.selectionTextColor
+                selectionColor: win.selectionFill
+                selectByMouse: true
+                clip: true
+                font.family: backend.editorFont
+                font.pixelSize: win.scaledSize(30)
+                font.weight: Font.Bold
+                onTextEdited: notes.setTitle(text)
+                Keys.onReturnPressed: editor.focusTop()
+                Keys.onEnterPressed: editor.focusTop()
+                Keys.onDownPressed: editor.focusTop()
+                Keys.onTabPressed: editor.focusTop()
+
+                Text {
+                    anchors.fill: parent
+                    text: qsTr("Title")
+                    visible: titleInput.length === 0
+                    color: win.mutedColor
+                    font: titleInput.font
+                }
+            }
+
             TextEdit {
                 id: editor
                 objectName: "sourceEditor"
                 x: Math.round((editorFlick.width - width) / 2)
-                // The resting position counts from the window's top edge, so
-                // take back the top inset the Flickable already adds.
-                y: Math.max(0, Math.max(42, Math.round(win.height * 0.05)) - win.footerHeight)
+                y: titleInput.y + titleInput.height + win.scaledSize(18)
+
+                function focusTop() {
+                    forceActiveFocus();
+                    cursorPosition = 0;
+                }
                 width: win.editorWidth
                 height: Math.max(editorFlick.height - y - 96, implicitHeight + 20)
                 text: ""
@@ -672,6 +1038,121 @@ ApplicationWindow {
 
                 function replaceSelectionWith(replacement) {
                     EditorMutations.replaceRange(editor, selectionStart, selectionEnd, replacement);
+                }
+
+                // Markdown has no underline, so it is the <u> tag Markdown
+                // lets through, wrapped and unwrapped like the other styles.
+                function toggleUnderline() {
+                    forceActiveFocus();
+                    var start = selectionStart;
+                    var end = selectionEnd;
+                    if (start === end) {
+                        var span = backend.emphasisSpanAt(cursorPosition, "<u>");
+                        if (span && span.start !== undefined)
+                            EditorMutations.toggleWrap(editor, "<u>", span);
+                        else
+                            EditorMutations.replaceRange(editor, start, end, "<u></u>", 3, 3);
+                        return;
+                    }
+                    var selected = text.slice(start, end);
+                    if (text.slice(start - 3, start) === "<u>" && text.slice(end, end + 4) === "</u>") {
+                        EditorMutations.replaceRange(editor, start - 3, end + 4, selected,
+                                                     0, selected.length);
+                        return;
+                    }
+                    var wrapped = selected.match(/^<u>([\s\S]*)<\/u>$/);
+                    if (wrapped) {
+                        EditorMutations.replaceRange(editor, start, end, wrapped[1],
+                                                     0, wrapped[1].length);
+                        return;
+                    }
+                    EditorMutations.replaceRange(editor, start, end, "<u>" + selected + "</u>",
+                                                 3, 3 + selected.length);
+                }
+
+                // Turns the lines the caret or selection touches into a
+                // bulleted, numbered or check list, or back into plain lines
+                // when they already all are one. Like Notes on the Mac.
+                function toggleList(kind) {
+                    forceActiveFocus();
+                    var from = text.lastIndexOf("\n", selectionStart - 1) + 1;
+                    var toBreak = text.indexOf("\n", selectionEnd);
+                    var to = toBreak < 0 ? text.length : toBreak;
+                    var lines = text.slice(from, to).split("\n");
+                    var itemRe = /^(\s*)(?:([-+*])\s+(?:\[([ xX])\]\s+)?|(\d+)[.)]\s+)?(.*)$/;
+                    var kindOf = function(m) {
+                        if (m[4] !== undefined) return "number";
+                        if (m[3] !== undefined) return "check";
+                        if (m[2] !== undefined) return "bullet";
+                        return "";
+                    };
+                    var allAlready = lines.every(function(line) {
+                        var m = line.match(itemRe);
+                        return m[5].length === 0 && kindOf(m) === "" || kindOf(m) === kind;
+                    }) && lines.some(function(line) { return kindOf(line.match(itemRe)) === kind; });
+                    var number = 0;
+                    var result = lines.map(function(line) {
+                        var m = line.match(itemRe);
+                        if (allAlready)
+                            return m[1] + m[5];
+                        if (m[5].length === 0 && lines.length > 1)
+                            return line;
+                        if (kind === "bullet")
+                            return m[1] + "- " + m[5];
+                        if (kind === "number")
+                            return m[1] + (++number) + ". " + m[5];
+                        var mark = m[3] !== undefined ? m[3] : " ";
+                        return m[1] + "- [" + mark + "] " + m[5];
+                    }).join("\n");
+                    var caretFromEnd = to - cursorPosition;
+                    EditorMutations.replaceRange(editor, from, to, result);
+                    if (lines.length === 1)
+                        cursorPosition = Math.max(from, from + result.length - caretFromEnd);
+                }
+
+                // Ticks the checklist item on the caret's line, or unticks it.
+                // A line that is not a checklist item becomes one.
+                function toggleCheck() {
+                    forceActiveFocus();
+                    var from = text.lastIndexOf("\n", cursorPosition - 1) + 1;
+                    var lineBreak = text.indexOf("\n", cursorPosition);
+                    var line = text.slice(from, lineBreak < 0 ? text.length : lineBreak);
+                    var m = line.match(/^(\s*[-+*]\s+\[)([ xX])\]/);
+                    if (!m) {
+                        toggleList("check");
+                        return;
+                    }
+                    var caret = cursorPosition;
+                    var at = from + m[1].length;
+                    EditorMutations.replaceRange(editor, at, at + 1, m[2] === " " ? "x" : " ");
+                    cursorPosition = caret;
+                }
+
+                // Edits made through the document (styles, lists, sums) undo
+                // with the caret thrown to the top of the note. Put it back at
+                // the end of whatever the undo or redo changed.
+                function undoKeepingPlace(redoing) {
+                    var before = text;
+                    if (redoing)
+                        redo();
+                    else
+                        undo();
+                    var after = text;
+                    if (before === after)
+                        return;
+                    var start = 0;
+                    while (start < before.length && start < after.length
+                           && before.charCodeAt(start) === after.charCodeAt(start))
+                        ++start;
+                    var endBefore = before.length;
+                    var endAfter = after.length;
+                    while (endBefore > start && endAfter > start
+                           && before.charCodeAt(endBefore - 1) === after.charCodeAt(endAfter - 1)) {
+                        --endBefore;
+                        --endAfter;
+                    }
+                    cursorPosition = endAfter;
+                    editorFlick.ensureCursorVisible();
                 }
 
                 function wrapSelection(marker) {
@@ -710,6 +1191,16 @@ ApplicationWindow {
                     var line = text.slice(lineStart, cursorPosition);
                     if (backend.insideFence(cursorPosition)) {
                         replaceSelectionWith("\n");
+                        return;
+                    }
+                    // A checklist item carries on with a fresh, unticked box;
+                    // Enter on an empty one ends the list.
+                    var task = line.match(/^(\s*)([-+*])\s+\[[ xX]\]\s+(.*)$/);
+                    if (task) {
+                        if (task[3].length === 0)
+                            EditorMutations.replaceRange(editor, lineStart, cursorPosition, "\n");
+                        else
+                            replaceSelectionWith("\n" + task[1] + task[2] + " [ ] ");
                         return;
                     }
                     var match = line.match(/^(\s*)([-+*]|\d+[.)]|>+)\s+(.*)$/);
@@ -921,6 +1412,22 @@ ApplicationWindow {
 
                 Keys.priority: Keys.BeforeItem
                 Keys.onPressed: function(event) {
+                    // The text box would take undo and redo itself, and leave
+                    // the caret at the top of the note.
+                    if (event.matches(StandardKey.Undo) || event.matches(StandardKey.Redo)
+                            || (event.key === Qt.Key_Y && event.modifiers === Qt.ControlModifier)) {
+                        undoKeepingPlace(!event.matches(StandardKey.Undo));
+                        event.accepted = true;
+                        return;
+                    }
+                    // Up from the first line climbs into the title.
+                    if (event.key === Qt.Key_Up && event.modifiers === Qt.NoModifier
+                            && cursorRectangle.y < cursorRectangle.height / 2) {
+                        titleInput.forceActiveFocus();
+                        titleInput.cursorPosition = titleInput.length;
+                        event.accepted = true;
+                        return;
+                    }
                     var pasteKey = (event.key === Qt.Key_V)
                         && (event.modifiers & Qt.ControlModifier)
                         && !(event.modifiers & (Qt.AltModifier | Qt.MetaModifier | Qt.ShiftModifier));
@@ -981,7 +1488,7 @@ ApplicationWindow {
                 Text {
                     anchors.left: parent.left
                     anchors.top: parent.top
-                    text: "# Start writing"
+                    text: qsTr("Start writing")
                     visible: editor.length === 0 && !editor.activeFocus
                     color: win.mutedColor
                     font.family: editor.font.family
@@ -1058,22 +1565,6 @@ ApplicationWindow {
             anchors.bottomMargin: 10
             spacing: 12
             opacity: 0.55
-
-            FooterIconButton {
-                objectName: "saveButton"
-                iconName: "save"
-                iconColor: win.mutedColor
-                tooltip: "Save"
-                onClicked: backend.save()
-            }
-
-            FooterIconButton {
-                objectName: "openButton"
-                iconName: "open"
-                iconColor: win.mutedColor
-                tooltip: "Open"
-                onClicked: backend.openDialog()
-            }
 
             FooterIconButton {
                 id: fontButton
@@ -1308,6 +1799,7 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        refreshNoteFilter();
         var geometry = backend.windowGeometry();
         if (geometry.x >= 0) x = geometry.x;
         if (geometry.y >= 0) y = geometry.y;

@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <iterator>
 
+#include "calc.h"
 #include "markdownhighlighter.h"
 
 constexpr qreal typoraLineHeightPercent = 140;
@@ -202,7 +203,17 @@ void Backend::setParentWindow(QWindow *window) {
     m_parentWindow = window;
 }
 
+void Backend::setDisplayName(const QString &name) {
+    if (m_displayName == name)
+        return;
+    m_displayName = name;
+    emit fileUrlChanged();
+}
+
 QString Backend::fileName() const {
+    if (!m_displayName.isEmpty())
+        return m_displayName;
+
     if (!m_fileUrl.isValid() || m_fileUrl.isEmpty())
         return QStringLiteral("Untitled.md");
 
@@ -524,6 +535,7 @@ bool Backend::editorTextChanged() {
     reapplyTypographyToChange();
 
     scheduleWordCount();
+    calculateAfterEquals(text);
 
     const QString &baseline = m_lastKnownFileText;
     // An empty baseline means a pristine untitled document, but only when there
@@ -549,6 +561,47 @@ bool Backend::editorTextChanged() {
     return true;
 }
 
+// Typing "=" at the end of a line like "1200 + 340 =" fills in the answer.
+// The answer goes in as an edit of its own, after this change has settled,
+// so Ctrl+Z takes back just the answer and keeps the equals sign.
+void Backend::calculateAfterEquals(const QString &text) {
+    const int position = m_lastChangePos;
+    if (m_lastChangeAdded != 1 || position < 0 || position >= text.size()
+        || text.at(position) != u'=')
+        return;
+
+    // Only at the end of the line: retyping an "=" in the middle of existing
+    // text must not push an answer into it.
+    const qsizetype lineEnd = text.indexOf(u'\n', position);
+    const QString after = text.mid(position + 1,
+                                   lineEnd < 0 ? -1 : lineEnd - position - 1);
+    if (!after.trimmed().isEmpty() || insideFence(position))
+        return;
+
+    const qsizetype lineStart = text.lastIndexOf(u'\n', position - 1) + 1;
+    const QString before = text.mid(lineStart, position - lineStart);
+    // "==" and "=>" belong to code and arrows, not sums.
+    if (before.endsWith(u'=') || before.endsWith(u'<') || before.endsWith(u'>')
+        || before.endsWith(u'!'))
+        return;
+    const QString answer = Calc::answerFor(before);
+    if (answer.isEmpty())
+        return;
+
+    const QString insertion = (before.endsWith(u' ') ? QStringLiteral(" ") : QString()) + answer;
+    QTimer::singleShot(0, this, [this, position, insertion]() {
+        // Typing may have moved on in the meantime; only answer the "=" that
+        // is still there at the end of its line.
+        const QString now = currentDocumentText();
+        if (position >= now.size() || now.at(position) != u'=')
+            return;
+        const qsizetype end = now.indexOf(u'\n', position);
+        if (!now.mid(position + 1, end < 0 ? -1 : end - position - 1).trimmed().isEmpty())
+            return;
+        replaceRange(position + 1, position + 1, insertion);
+    });
+}
+
 void Backend::setCaretPosition(int position) {
     m_caretPosition = position;
     if (m_highlighter)
@@ -570,6 +623,7 @@ QVariantMap Backend::emphasisSpanAt(int position, const QString &marker) const {
     using Kind = MarkdownHighlighter::InlineKind;
     const Kind kind = marker == QStringLiteral("**") ? Kind::Bold
         : marker == QStringLiteral("~~")              ? Kind::Strikethrough
+        : marker == QStringLiteral("<u>")             ? Kind::Underline
                                                       : Kind::Italic;
     const int offset = position - block.position();
     const QList<MarkdownHighlighter::InlineMarkup> markup =

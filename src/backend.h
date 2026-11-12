@@ -40,6 +40,11 @@ public:
     ~Backend() override;
 
     void setParentWindow(QWindow *window);
+    // Shown in place of the file name, so a note reads by its title rather
+    // than by the id its file is stored under.
+    void setDisplayName(const QString &name);
+    void showStatus(const QString &status) { setStatus(status); }
+    QString documentText() const { return currentDocumentText(); }
 
     QUrl fileUrl() const { return m_fileUrl; }
     QString fileName() const;
@@ -120,6 +125,7 @@ private:
     friend class OmawriteTest;
 
     void loadDocumentText(const QString &text);
+    void calculateAfterEquals(const QString &text);
     qreal steppedTextZoom(int direction) const;
     void setTextZoom(qreal zoom);
     void setFileUrl(const QUrl &url);
@@ -151,6 +157,7 @@ private:
     void watchOmarchyTheme();
 
     QUrl m_fileUrl;
+    QString m_displayName;
     bool m_modified = false;
     QString m_status;
     int m_wordCount = 0;

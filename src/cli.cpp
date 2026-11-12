@@ -4,10 +4,12 @@
 
 QString Cli::usage() {
     return QStringLiteral(
-        "Usage: omawrite [FILE]\n"
+        "Usage: omawrite-plus\n"
+        "       omawrite-plus import FILE...\n"
         "\n"
-        "Opens FILE, a Markdown file, or an empty document without one. Omawrite\n"
-        "is a graphical app and keeps running until its window is closed.\n"
+        "Opens your notes. Notes are kept inside the app and save as you type.\n"
+        "`import` copies Markdown files in as new notes, titled after each file,\n"
+        "and leaves the files themselves alone.\n"
         "\n"
         "Options:\n"
         "  -h, --help     Show this message and exit\n"
@@ -24,7 +26,7 @@ std::optional<int> Cli::handleArguments(const QStringList &arguments, const QStr
         return 0;
     }
     if (first == QLatin1String("-v") || first == QLatin1String("--version")) {
-        QTextStream(stdout) << QStringLiteral("omawrite %1\n").arg(version);
+        QTextStream(stdout) << QStringLiteral("omawrite-plus %1\n").arg(version);
         return 0;
     }
 

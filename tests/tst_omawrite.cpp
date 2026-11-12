@@ -21,6 +21,8 @@
 #include "cli.h"
 
 #include "backend.h"
+#include "calc.h"
+#include "notes.h"
 #include "markdownhighlighter.h"
 
 // Counts QML "Binding loop detected" warnings while it is alive, forwarding
@@ -158,7 +160,7 @@ private slots:
 
     void answersHelpBeforeOpeningAWindow() {
         const QString usage = Cli::usage();
-        QVERIFY(usage.contains(QStringLiteral("omawrite [FILE]")));
+        QVERIFY(usage.contains(QStringLiteral("Usage: omawrite-plus")));
         QVERIFY(usage.contains(QStringLiteral("-h, --help")));
         QVERIFY(usage.contains(QStringLiteral("-v, --version")));
 
@@ -253,6 +255,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -275,6 +280,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -322,6 +330,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -400,6 +411,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -443,6 +457,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -510,6 +527,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -558,6 +578,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -604,6 +627,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -640,6 +666,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -664,6 +693,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -690,6 +722,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -734,6 +769,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -812,6 +850,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -890,6 +931,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -967,6 +1011,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -1561,6 +1608,9 @@ private slots:
 
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -1751,6 +1801,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -1818,6 +1871,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -1853,34 +1909,156 @@ private slots:
         QCOMPARE(step(QStringLiteral("😀\nb"), 3, -1), 2);
     }
 
-    void savesAndOpensFromFooterButtons() {
+    void keepsNotesInsideTheApp() {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+
+        QString groceries;
+        {
+            Notes notes(nullptr, directory.path());
+            QVERIFY(notes.notes().isEmpty());
+
+            groceries = notes.createNote();
+            QVERIFY(!groceries.isEmpty());
+            QCOMPARE(notes.currentId(), groceries);
+            QCOMPARE(notes.displayTitle(groceries), QStringLiteral("New Note"));
+
+            // An untouched new note is reused, not piled up.
+            QCOMPARE(notes.createNote(), groceries);
+            QCOMPARE(notes.notes().size(), 1);
+
+            notes.setTitle(QStringLiteral("Groceries"));
+            QCOMPARE(notes.currentTitle(), QStringLiteral("Groceries"));
+            QFile file(notes.urlFor(groceries).toLocalFile());
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("- Milk\n- Bread\n");
+            file.close();
+
+            // Leaving a blank note throws it away; a titled one stays.
+            const QString blank = notes.createNote();
+            QVERIFY(blank != groceries);
+            QCOMPARE(notes.notes().size(), 2);
+            notes.openNote(groceries);
+            QCOMPARE(notes.notes().size(), 1);
+            QVERIFY(!QFileInfo::exists(notes.urlFor(blank).toLocalFile()));
+        }
+
+        // The titles live in the index and come back next time.
+        Notes reopened(nullptr, directory.path());
+        QCOMPARE(reopened.notes().size(), 1);
+        QCOMPARE(reopened.displayTitle(groceries), QStringLiteral("Groceries"));
+        const QVariantMap entry = reopened.notes().first().toMap();
+        QCOMPARE(entry.value(QStringLiteral("preview")).toString(), QStringLiteral("Milk"));
+
+        QCOMPARE(reopened.search(QStringLiteral("grocer")), QStringList{groceries});
+        QCOMPARE(reopened.search(QStringLiteral("BREAD")), QStringList{groceries});
+        QVERIFY(reopened.search(QStringLiteral("cheese")).isEmpty());
+        QCOMPARE(reopened.search(QString()), QStringList{groceries});
+
+        reopened.deleteNote(groceries);
+        QVERIFY(reopened.displayTitle(groceries).isEmpty());
+        QVERIFY(!QFileInfo::exists(reopened.urlFor(groceries).toLocalFile()));
+    }
+
+    void importsMarkdownFilesAsNotes() {
+        QTemporaryDir library;
+        QTemporaryDir elsewhere;
+        QVERIFY(library.isValid());
+        QVERIFY(elsewhere.isValid());
+
+        const QString path = elsewhere.filePath(QStringLiteral("Idea jar.md"));
+        QFile source(path);
+        QVERIFY(source.open(QIODevice::WriteOnly));
+        source.write("# Big\n\n- Omawrite sidebar\n");
+        source.close();
+
+        Notes notes(nullptr, library.path());
+        QString error;
+        const QString id = notes.importFile(path, &error);
+        QVERIFY2(!id.isEmpty(), qPrintable(error));
+        QCOMPARE(notes.displayTitle(id), QStringLiteral("Idea jar"));
+        QVERIFY(QFileInfo::exists(path));
+
+        QFile copy(notes.urlFor(id).toLocalFile());
+        QVERIFY(copy.open(QIODevice::ReadOnly));
+        QCOMPARE(copy.readAll(), QByteArray("# Big\n\n- Omawrite sidebar\n"));
+
+        QVERIFY(notes.importFile(elsewhere.filePath(QStringLiteral("missing.md")), &error)
+                    .isEmpty());
+        QVERIFY(!error.isEmpty());
+    }
+
+    void previewsTheFirstLineWithWords() {
+        QCOMPARE(Notes::previewOf(QStringLiteral("\n\n# **Hello** there\nmore")),
+                 QStringLiteral("Hello there"));
+        QCOMPARE(Notes::previewOf(QStringLiteral("- [x] Done thing")), QStringLiteral("Done thing"));
+        QCOMPARE(Notes::previewOf(QStringLiteral("1. First")), QStringLiteral("First"));
+        QCOMPARE(Notes::previewOf(QStringLiteral("   \n")), QString());
+    }
+
+    void showsNotesInsteadOfFiles() {
         const QString mainQmlPath = QFINDTESTDATA("../src/Main.qml");
         QVERIFY(!mainQmlPath.isEmpty());
 
         Backend backend;
         QQmlEngine engine;
+        QTemporaryDir notesDirectory;
+        QVERIFY(notesDirectory.isValid());
+        Notes notes(&backend, notesDirectory.path());
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
         QVERIFY2(window, qPrintable(component.errorString()));
 
-        QVERIFY(window->findChild<QObject *>(QStringLiteral("sourceEditor")));
-        QVERIFY(!window->findChild<QObject *>(QStringLiteral("renderedPreview")));
-        QVERIFY(!window->findChild<QObject *>(QStringLiteral("modeToggle")));
+        QVERIFY(!window->findChild<QObject *>(QStringLiteral("saveButton")));
+        QVERIFY(!window->findChild<QObject *>(QStringLiteral("openButton")));
+        QVERIFY(window->findChild<QObject *>(QStringLiteral("noteSidebar")));
+        QVERIFY(window->findChild<QObject *>(QStringLiteral("newNoteButton")));
+        QObject *titleInput = window->findChild<QObject *>(QStringLiteral("titleInput"));
+        QObject *editor = window->findChild<QObject *>(QStringLiteral("sourceEditor"));
+        QVERIFY(titleInput);
+        QVERIFY(editor);
 
-        QObject *saveButton = window->findChild<QObject *>(QStringLiteral("saveButton"));
-        QObject *openButton = window->findChild<QObject *>(QStringLiteral("openButton"));
-        QVERIFY(saveButton);
-        QVERIFY(openButton);
+        // An empty library starts with one fresh note open in the editor.
+        notes.start();
+        QCOMPARE(notes.notes().size(), 1);
+        const QString id = notes.currentId();
+        QCOMPARE(backend.fileUrl(), notes.urlFor(id));
 
-        QSignalSpy saveDialogSpy(&backend, &Backend::saveDialogRequested);
-        QVERIFY(QMetaObject::invokeMethod(saveButton, "clicked"));
-        QCOMPARE(saveDialogSpy.count(), 1);
+        // What the writer types goes into that note's own file.
+        editor->setProperty("text", QStringLiteral("Hello from a note"));
+        backend.save();
+        QTRY_VERIFY(!backend.modified());
+        QFile file(notes.urlFor(id).toLocalFile());
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(QString::fromUtf8(file.readAll()), QStringLiteral("Hello from a note"));
+        QCOMPARE(notes.notes().first().toMap().value(QStringLiteral("preview")).toString(),
+                 QStringLiteral("Hello from a note"));
 
-        QSignalSpy openDialogSpy(&backend, &Backend::openDialogRequested);
-        QVERIFY(QMetaObject::invokeMethod(openButton, "clicked"));
-        QCOMPARE(openDialogSpy.count(), 1);
+        // Switching notes fills the title field from the note.
+        notes.setTitle(QStringLiteral("First"));
+        const QString second = notes.createNote();
+        QVERIFY(second != id);
+        QCOMPARE(titleInput->property("text").toString(), QString());
+        notes.openNote(id);
+        QCOMPARE(titleInput->property("text").toString(), QStringLiteral("First"));
+        QCOMPARE(notes.notes().size(), 1);
+    }
+
+    void calculatesWhenTypingEquals() {
+        QCOMPARE(Calc::answerFor(QStringLiteral("1200 + 340 ")), QStringLiteral("1540"));
+        QCOMPARE(Calc::answerFor(QStringLiteral("Rent: 3 * 450")), QStringLiteral("1350"));
+        QCOMPARE(Calc::answerFor(QStringLiteral("10 / 4")), QStringLiteral("2.5"));
+        QCOMPARE(Calc::answerFor(QStringLiteral("(2 + 3) x 4")), QStringLiteral("20"));
+        QCOMPARE(Calc::answerFor(QStringLiteral("2^10")), QStringLiteral("1024"));
+        QCOMPARE(Calc::answerFor(QStringLiteral("1,000 + 1")), QStringLiteral("1001"));
+        QCOMPARE(Calc::answerFor(QStringLiteral("5 ")), QString());
+        QCOMPARE(Calc::answerFor(QStringLiteral("just words")), QString());
+        QCOMPARE(Calc::answerFor(QStringLiteral("1 / 0")), QString());
+        QVERIFY(!Calc::evaluate(QStringLiteral("2 +")).has_value());
+        QCOMPARE(Calc::format(10.0 / 3.0), QStringLiteral("3.3333333333"));
     }
 
     void copiesRenderedHtml() {
@@ -1890,6 +2068,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -1920,6 +2101,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -1961,6 +2145,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -2037,6 +2224,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -2185,6 +2375,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -2412,6 +2605,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -2476,6 +2672,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -2513,6 +2712,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> object(component.create());
@@ -2546,6 +2748,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -2585,6 +2790,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());
@@ -2617,6 +2825,9 @@ private slots:
         backend.setDesktopTextScale(scale);
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QScopedPointer<QObject> object(component.create());
         QVERIFY2(object, qPrintable(component.errorString()));
@@ -2640,7 +2851,7 @@ private slots:
             QVERIFY(versionLabel);
             QVERIFY(versionLabel->property("visible").toBool());
             QCOMPARE(versionLabel->property("text").toString(),
-                     QStringLiteral("Omawrite ") + QCoreApplication::applicationVersion());
+                     QStringLiteral("Omawrite+ ") + QCoreApplication::applicationVersion());
             QTest::keyClick(window, Qt::Key_Minus, Qt::ControlModifier);
             QCOMPARE(backend.textScale(), scale);
             QVERIFY(dialog->property("x").toReal() >= 0);
@@ -2987,6 +3198,9 @@ private slots:
         Backend backend;
         QQmlEngine engine;
         engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
         QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         QScopedPointer<QObject> window(component.create());

@@ -13,12 +13,16 @@ Dialog {
     property real textScale: 1
     property int containerWidth: 1280
     property int containerHeight: 820
-    readonly property string versionText: "Omawrite " + Qt.application.version
+    readonly property string versionText: "Omawrite+ " + Qt.application.version
     readonly property var shortcuts: [
-        { key: "Ctrl+S", desc: "Save" },
-        { key: "Ctrl+Shift+S", desc: "Save As" },
-        { key: "Ctrl+O", desc: "Open" },
-        { key: "Ctrl+N", desc: "New Window" },
+        { key: "Ctrl+N", desc: "New Note" },
+        { key: "Alt+Up / Alt+Down", desc: "Previous / Next Note" },
+        { key: "Ctrl+Shift+F", desc: "Search Notes" },
+        { key: "Ctrl+L", desc: "Edit Title" },
+        { key: "Ctrl+\\", desc: "Show / Hide Sidebar" },
+        { key: "Ctrl+Shift+Backspace", desc: "Delete Note" },
+        { key: "1200 + 340 =", desc: "Calculate" },
+        { key: "Ctrl+S", desc: "Save Now (notes save as you type)" },
         { key: "Ctrl+P", desc: "Print" },
         { key: "Ctrl+Z", desc: "Undo" },
         { key: "Ctrl+Shift+Z / Ctrl+Y", desc: "Redo" },
@@ -31,6 +35,11 @@ Dialog {
         { key: "Ctrl+B", desc: "Bold" },
         { key: "Ctrl+I", desc: "Italic" },
         { key: "Ctrl+Shift+X", desc: "Strikethrough" },
+        { key: "Ctrl+U", desc: "Underline" },
+        { key: "Ctrl+Shift+8", desc: "Bulleted List" },
+        { key: "Ctrl+Shift+7", desc: "Numbered List" },
+        { key: "Ctrl+Shift+L", desc: "Checklist" },
+        { key: "Ctrl+Enter", desc: "Tick / Untick Checklist Item" },
         { key: "Ctrl+K", desc: "Link" },
         { key: "Ctrl+Shift+C", desc: "Copy as HTML" },
         { key: "Ctrl+= / Ctrl++", desc: "Increase Text Size" },
