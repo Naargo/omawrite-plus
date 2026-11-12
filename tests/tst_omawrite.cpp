@@ -2061,6 +2061,74 @@ private slots:
         QCOMPARE(Calc::format(10.0 / 3.0), QStringLiteral("3.3333333333"));
     }
 
+    void formatsFromTheTopBar() {
+        const QString mainQmlPath = QFINDTESTDATA("../src/Main.qml");
+        QVERIFY(!mainQmlPath.isEmpty());
+
+        Backend backend;
+        QQmlEngine engine;
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
+        QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QScopedPointer<QObject> window(component.create());
+        QVERIFY2(window, qPrintable(component.errorString()));
+
+        QObject *editor = window->findChild<QObject *>(QStringLiteral("sourceEditor"));
+        QObject *bar = window->findChild<QObject *>(QStringLiteral("formatBar"));
+        QVERIFY(editor);
+        QVERIFY(bar);
+        for (const char *name : {"headingButton", "boldButton", "italicButton", "underlineButton",
+                                 "strikeButton", "bulletButton", "numberButton", "checkButton"})
+            QVERIFY2(bar->findChild<QObject *>(QString::fromLatin1(name)), name);
+
+        const auto heading = [&](int level) {
+            QVERIFY(QMetaObject::invokeMethod(editor, "setHeading", Q_ARG(QVariant, level)));
+        };
+        const auto text = [&]() { return editor->property("text").toString(); };
+
+        editor->setProperty("text", QStringLiteral("Plan\nsecond line"));
+        editor->setProperty("cursorPosition", 2);
+        heading(1);
+        QCOMPARE(text(), QStringLiteral("# Plan\nsecond line"));
+        QCOMPARE(bar->property("lineStyle").toMap().value(QStringLiteral("heading")).toInt(), 1);
+        QVERIFY(bar->findChild<QObject *>(QStringLiteral("headingButton"))->property("active").toBool());
+
+        // Another level replaces the marker; the same level again undoes it.
+        heading(3);
+        QCOMPARE(text(), QStringLiteral("### Plan\nsecond line"));
+        heading(3);
+        QCOMPARE(text(), QStringLiteral("Plan\nsecond line"));
+        heading(2);
+        heading(0);
+        QCOMPARE(text(), QStringLiteral("Plan\nsecond line"));
+
+        // A list item becomes a heading without its bullet.
+        editor->setProperty("text", QStringLiteral("- [ ] Task"));
+        editor->setProperty("cursorPosition", 8);
+        QCOMPARE(bar->property("lineStyle").toMap().value(QStringLiteral("list")).toString(),
+                 QStringLiteral("check"));
+        QVERIFY(bar->findChild<QObject *>(QStringLiteral("checkButton"))->property("active").toBool());
+        heading(2);
+        QCOMPARE(text(), QStringLiteral("## Task"));
+
+        // The buttons run the same edits as the shortcuts.
+        editor->setProperty("text", QStringLiteral("word"));
+        QVERIFY(QMetaObject::invokeMethod(editor, "select", Q_ARG(int, 0), Q_ARG(int, 4)));
+        QObject *bold = bar->findChild<QObject *>(QStringLiteral("boldButton"));
+        QVERIFY(QMetaObject::invokeMethod(bold, "clicked"));
+        QCOMPARE(text(), QStringLiteral("**word**"));
+        editor->setProperty("cursorPosition", 4);
+        QTRY_VERIFY(bold->property("active").toBool());
+        QVERIFY(!bar->findChild<QObject *>(QStringLiteral("strikeButton"))->property("active").toBool());
+
+        QObject *bullet = bar->findChild<QObject *>(QStringLiteral("bulletButton"));
+        QVERIFY(QMetaObject::invokeMethod(bullet, "clicked"));
+        QCOMPARE(text(), QStringLiteral("- **word**"));
+    }
+
     void copiesRenderedHtml() {
         const QString mainQmlPath = QFINDTESTDATA("../src/Main.qml");
         QVERIFY(!mainQmlPath.isEmpty());

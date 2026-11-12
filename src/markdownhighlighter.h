@@ -76,6 +76,9 @@ private:
     QTextCharFormat m_markerFormat;
     QTextCharFormat m_hiddenMarkerFormat;
     QTextCharFormat m_headingFormat;
+    // Title, Heading and Subheading (#, ##, ###) each a step larger than
+    // the text; deeper levels stay at text size, just bold.
+    QTextCharFormat m_headingLevelFormats[3];
     QTextCharFormat m_boldFormat;
     QTextCharFormat m_italicFormat;
     QTextCharFormat m_codeFormat;

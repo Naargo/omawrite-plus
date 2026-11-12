@@ -18,7 +18,7 @@
 #include "notes.h"
 #include "systemtheme.h"
 
-#define OMAWRITE_VERSION "0.1.0"
+#define OMAWRITE_VERSION "0.2.0"
 
 int main(int argc, char *argv[]) {
     // Answered before the application exists, so they need no display.
@@ -65,6 +65,8 @@ int main(int argc, char *argv[]) {
     QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/IBMPlexMono-Italic.ttf"));
     QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/IBMPlexMono-Bold.ttf"));
     QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/IBMPlexMono-BoldItalic.ttf"));
+    // The script the app signs its name in, top right.
+    QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/GreatVibes-Regular.ttf"));
     app.setOrganizationName(QStringLiteral("Omacom"));
     app.setOrganizationDomain(QStringLiteral("omacom.io"));
 

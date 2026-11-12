@@ -144,6 +144,20 @@ void MarkdownHighlighter::rebuildFormats() {
     m_headingFormat.setForeground(text);
     m_headingFormat.setFontWeight(QFont::Bold);
 
+    // Sized from the editor's own font, which tells us when it changes, so
+    // headings keep their proportions through Ctrl+= and Ctrl+-.
+    const QFont base = document() ? document()->defaultFont() : QFont();
+    const qreal headingScales[3] = {1.6, 1.3, 1.12};
+    for (int level = 0; level < 3; ++level) {
+        QTextCharFormat &format = m_headingLevelFormats[level];
+        format = m_headingFormat;
+        if (base.pixelSize() > 0)
+            format.setProperty(QTextFormat::FontPixelSize,
+                               qRound(base.pixelSize() * headingScales[level]));
+        else if (base.pointSizeF() > 0)
+            format.setFontPointSize(base.pointSizeF() * headingScales[level]);
+    }
+
     m_boldFormat = QTextCharFormat();
     m_boldFormat.setFontWeight(QFont::Bold);
 
@@ -368,8 +382,9 @@ void MarkdownHighlighter::highlightMarkers(const QString &text) {
         if (heading.hasMatch()) {
             setFormat(0, heading.capturedLength(1) + heading.capturedLength(2),
                       m_markerFormat);
+            const int level = heading.capturedLength(1);
             setFormat(heading.capturedStart(3), heading.capturedLength(3),
-                      m_headingFormat);
+                      level <= 3 ? m_headingLevelFormats[level - 1] : m_headingFormat);
             return;
         }
     }

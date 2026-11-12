@@ -294,6 +294,30 @@ ApplicationWindow {
     }
 
     Shortcut {
+        sequence: "Ctrl+Shift+T"
+        context: Qt.WindowShortcut
+        onActivated: editor.setHeading(1)
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+H"
+        context: Qt.WindowShortcut
+        onActivated: editor.setHeading(2)
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+J"
+        context: Qt.WindowShortcut
+        onActivated: editor.setHeading(3)
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+B"
+        context: Qt.WindowShortcut
+        onActivated: editor.setHeading(0)
+    }
+
+    Shortcut {
         sequences: ["Ctrl+Return", "Ctrl+Enter"]
         context: Qt.WindowShortcut
         enabled: editor.activeFocus
@@ -1128,6 +1152,36 @@ ApplicationWindow {
                     cursorPosition = caret;
                 }
 
+                // Makes the lines the caret or selection touches a Title (1),
+                // Heading (2) or Subheading (3), or plain text (0). Choosing
+                // the level the lines already have turns them back into text,
+                // the way the list buttons toggle.
+                function setHeading(level) {
+                    forceActiveFocus();
+                    var from = text.lastIndexOf("\n", selectionStart - 1) + 1;
+                    var toBreak = text.indexOf("\n", selectionEnd);
+                    var to = toBreak < 0 ? text.length : toBreak;
+                    var lines = text.slice(from, to).split("\n");
+                    var headingRe = /^#{1,6}\s+/;
+                    var listRe = /^\s*(?:[-+*]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+)/;
+                    var marker = level > 0 ? "#".repeat(level) + " " : "";
+                    var already = level > 0 && lines.every(function(line) {
+                        return line.trim().length === 0 || line.indexOf(marker) === 0;
+                    });
+                    var result = lines.map(function(line) {
+                        if (lines.length > 1 && line.trim().length === 0)
+                            return line;
+                        var bare = line.replace(headingRe, "");
+                        if (already || level === 0)
+                            return bare;
+                        return marker + bare.replace(listRe, "");
+                    }).join("\n");
+                    var caretFromEnd = to - cursorPosition;
+                    EditorMutations.replaceRange(editor, from, to, result);
+                    if (lines.length === 1)
+                        cursorPosition = Math.max(from, from + result.length - caretFromEnd);
+                }
+
                 // Edits made through the document (styles, lists, sums) undo
                 // with the caret thrown to the top of the note. Put it back at
                 // the end of whatever the undo or redo changed.
@@ -1555,6 +1609,21 @@ ApplicationWindow {
                     forceActiveFocus();
                 }
             }
+        }
+
+        FormatBar {
+            id: formatBar
+            objectName: "formatBar"
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: win.footerHeight
+            editor: editor
+            textColor: win.textColor
+            mutedColor: win.mutedColor
+            pageColor: win.pageColor
+            textScale: win.textScale
+            contentX: editorFlick.x + editor.x
         }
 
         Row {

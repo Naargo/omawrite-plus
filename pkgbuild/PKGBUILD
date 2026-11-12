@@ -2,7 +2,7 @@
 # Based on Omawrite by David Heinemeier Hansson (MIT).
 
 pkgname=omawrite-plus
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Omawrite with a Notes-style sidebar, titles and in-app storage'
 arch=('x86_64' 'aarch64')
@@ -24,6 +24,7 @@ package() {
   /usr/bin/install -Dm755 build/omawrite-plus "$pkgdir/usr/bin/omawrite-plus"
   /usr/bin/install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
   /usr/bin/install -Dm644 fonts/OFL.txt "$pkgdir/usr/share/licenses/$pkgname/OFL.txt"
+  /usr/bin/install -Dm644 fonts/OFL-GreatVibes.txt "$pkgdir/usr/share/licenses/$pkgname/OFL-GreatVibes.txt"
   /usr/bin/install -Dm644 "$startdir/omawrite-plus.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/omawrite-plus.svg"
   /usr/bin/install -Dm644 "$startdir/omawrite-plus.desktop" "$pkgdir/usr/share/applications/omawrite-plus.desktop"
 }
