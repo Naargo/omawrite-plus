@@ -1,3 +1,61 @@
+# Omawrite+
+
+Omawrite, turned into a notes app like Notes on the Mac. Same small Qt Quick
+app, same Markdown, same theme-following look, plus:
+
+- **A notes sidebar** with search, a new-note button and delete. Each note has
+  a title field above the text.
+- **Notes live inside the app.** No files to name or folders to pick: every note
+  saves as you type into `~/.local/share/Omacom/omawrite-plus/notes/` (one
+  Markdown file per note, plus `index.json` for titles, dates and pins).
+- **Pins.** Pin a note to the top of the sidebar (`Ctrl+Shift+P`).
+- **A formatting bar** across the top: Title / Heading / Subheading / Body,
+  bold, italic, underline, strikethrough, and bulleted, numbered and check
+  lists. Headings get their own sizes, and their `#`s hide when you're not on
+  the line.
+- **Checklists that sort themselves.** `Ctrl+Enter` ticks an item and sends it
+  below the open ones.
+- **Sums.** Type `1200 + 340 =` and the answer fills itself in.
+- **Quick capture.** `omawrite-plus add "an idea"` jots a line onto your
+  "Idea jar" note, whether the app is open or not.
+
+![Omawrite+](docs/screenshot.png)
+
+## Install
+
+Omawrite+ installs alongside stock Omawrite as its own package:
+
+```sh
+git clone https://github.com/Naargo/omawrite-plus
+cd omawrite-plus
+bin/install
+```
+
+Then run `omawrite-plus`. `omawrite-plus import FILE.md` copies existing
+Markdown files in as notes.
+
+## New shortcuts
+
+| Keys | Does |
+| --- | --- |
+| `Ctrl+N` | New note |
+| `Ctrl+L` | Edit the title |
+| `Ctrl+Shift+F` | Search notes |
+| `Alt+Up` / `Alt+Down` | Previous / next note |
+| `Ctrl+\` | Show / hide the sidebar |
+| `Ctrl+Shift+P` | Pin / unpin the note |
+| `Ctrl+Shift+Backspace` | Delete the note |
+| `Ctrl+Shift+T` / `H` / `J` / `B` | Title / Heading / Subheading / Body |
+| `Ctrl+U` | Underline |
+| `Ctrl+Shift+8` / `7` / `L` | Bulleted / numbered / check list |
+| `Ctrl+Enter` | Tick or untick a checklist item |
+
+Open and Save As are gone, since notes save themselves. Everything below is
+the original Omawrite README, by David Heinemeier Hansson and contributors
+(MIT).
+
+---
+
 # Omawrite
 
 A dead-simple Markdown writing app built with Qt Quick and C++ that automatically follows system dark/light mode.
