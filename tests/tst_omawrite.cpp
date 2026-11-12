@@ -2129,6 +2129,139 @@ private slots:
         QCOMPARE(text(), QStringLiteral("- **word**"));
     }
 
+    void keepsPinnedNotesOnTop() {
+        QTemporaryDir directory;
+        QString older;
+        QString newer;
+        {
+            Notes notes(nullptr, directory.path());
+            older = notes.createNote();
+            notes.setTitle(QStringLiteral("Idea jar"));
+            QTest::qWait(5);
+            newer = notes.createNote();
+            notes.setTitle(QStringLiteral("Today"));
+            QCOMPARE(notes.notes().first().toMap().value(QStringLiteral("id")).toString(), newer);
+
+            notes.togglePinned(older);
+            QVERIFY(notes.isPinned(older));
+            QCOMPARE(notes.notes().first().toMap().value(QStringLiteral("id")).toString(), older);
+            QVERIFY(notes.notes().first().toMap().value(QStringLiteral("pinned")).toBool());
+        }
+        // The pin is kept in the index.
+        Notes reopened(nullptr, directory.path());
+        QVERIFY(reopened.isPinned(older));
+        QCOMPARE(reopened.notes().first().toMap().value(QStringLiteral("id")).toString(), older);
+        reopened.togglePinned(older);
+        QCOMPARE(reopened.notes().first().toMap().value(QStringLiteral("id")).toString(), newer);
+    }
+
+    void sinksTickedItems() {
+        const QString mainQmlPath = QFINDTESTDATA("../src/Main.qml");
+        QVERIFY(!mainQmlPath.isEmpty());
+
+        Backend backend;
+        QQmlEngine engine;
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
+        QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QScopedPointer<QObject> window(component.create());
+        QVERIFY2(window, qPrintable(component.errorString()));
+        QObject *editor = window->findChild<QObject *>(QStringLiteral("sourceEditor"));
+        QVERIFY(editor);
+        const auto text = [&]() { return editor->property("text").toString(); };
+        const auto tick = [&]() { QVERIFY(QMetaObject::invokeMethod(editor, "toggleCheck")); };
+
+        editor->setProperty("text", QStringLiteral(
+            "Shop\n- [ ] Milk\n- [ ] Bread\n  - [ ] Rye\n- [x] Eggs\n- [ ] Jam\n\nAfter"));
+        // Ticking Milk sends it below the open items, after Eggs.
+        editor->setProperty("cursorPosition", 8);
+        tick();
+        QCOMPARE(text(), QStringLiteral(
+            "Shop\n- [ ] Bread\n  - [ ] Rye\n- [ ] Jam\n- [x] Eggs\n- [x] Milk\n\nAfter"));
+        // The caret stays on line two, now Bread, so ticking again goes on.
+        tick();
+        QCOMPARE(text(), QStringLiteral(
+            "Shop\n- [ ] Jam\n- [x] Eggs\n- [x] Milk\n- [x] Bread\n  - [ ] Rye\n\nAfter"));
+        // Unticking brings an item back up with the open ones.
+        const int eggs = text().indexOf(QStringLiteral("Eggs"));
+        editor->setProperty("cursorPosition", eggs);
+        tick();
+        QCOMPARE(text(), QStringLiteral(
+            "Shop\n- [ ] Jam\n- [ ] Eggs\n- [x] Milk\n- [x] Bread\n  - [ ] Rye\n\nAfter"));
+        // A sub-item sorts only among its own siblings.
+        const int rye = text().indexOf(QStringLiteral("Rye"));
+        editor->setProperty("cursorPosition", rye);
+        tick();
+        QCOMPARE(text(), QStringLiteral(
+            "Shop\n- [ ] Jam\n- [ ] Eggs\n- [x] Milk\n- [x] Bread\n  - [x] Rye\n\nAfter"));
+    }
+
+    void jotsIntoTheIdeaJar() {
+        const auto read = [](const Notes &notes, const QString &id) {
+            QFile file(notes.urlFor(id).toLocalFile());
+            return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+        };
+        {
+            // No jar yet: one is made, titled "Idea jar".
+            QTemporaryDir directory;
+            Notes notes(nullptr, directory.path());
+            const QString jar = notes.addToJar(QStringLiteral("  Pretty   OneSec "));
+            QVERIFY(!jar.isEmpty());
+            QCOMPARE(notes.displayTitle(jar), QStringLiteral("Idea jar"));
+            QCOMPARE(read(notes, jar), QStringLiteral("- Pretty OneSec"));
+            QCOMPARE(notes.addToJar(QStringLiteral("Day plan")), jar);
+            QCOMPARE(read(notes, jar), QStringLiteral("- Pretty OneSec\n- Day plan"));
+            QCOMPARE(notes.notes().size(), 1);
+        }
+        {
+            // The note titled "Idea jar" wins over a pinned one, any case.
+            QTemporaryDir directory;
+            Notes notes(nullptr, directory.path());
+            const QString pinned = notes.createNote();
+            notes.setTitle(QStringLiteral("Pinned"));
+            notes.togglePinned(pinned);
+            QCOMPARE(notes.addToJar(QStringLiteral("x")), pinned);
+            const QString jar = notes.createNote();
+            notes.setTitle(QStringLiteral("IDEA JAR"));
+            QFile file(notes.urlFor(jar).toLocalFile());
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            file.write("**Big:**\n- One\n");
+            file.close();
+            QCOMPARE(notes.addToJar(QStringLiteral("Two")), jar);
+            QCOMPARE(read(notes, jar), QStringLiteral("**Big:**\n- One\n- Two"));
+        }
+    }
+
+    void jotsIntoTheOpenNoteAsAnEdit() {
+        const QString mainQmlPath = QFINDTESTDATA("../src/Main.qml");
+        QVERIFY(!mainQmlPath.isEmpty());
+
+        Backend backend;
+        QQmlEngine engine;
+        QTemporaryDir notesDirectory;
+        Notes notes(&backend, notesDirectory.path());
+        engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        engine.rootContext()->setContextProperty(QStringLiteral("notes"), &notes);
+        QQmlComponent component(&engine, QUrl::fromLocalFile(mainQmlPath));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QScopedPointer<QObject> window(component.create());
+        QVERIFY2(window, qPrintable(component.errorString()));
+        QObject *editor = window->findChild<QObject *>(QStringLiteral("sourceEditor"));
+        QVERIFY(editor);
+
+        notes.start();
+        notes.setTitle(QStringLiteral("Idea jar"));
+        editor->setProperty("text", QStringLiteral("- First"));
+        editor->setProperty("cursorPosition", 2);
+        QCOMPARE(notes.addToJar(QStringLiteral("Second")), notes.currentId());
+        QCOMPARE(editor->property("text").toString(), QStringLiteral("- First\n- Second"));
+        QCOMPARE(editor->property("cursorPosition").toInt(), 2);
+        QVERIFY(backend.modified());
+    }
+
     void copiesRenderedHtml() {
         const QString mainQmlPath = QFINDTESTDATA("../src/Main.qml");
         QVERIFY(!mainQmlPath.isEmpty());

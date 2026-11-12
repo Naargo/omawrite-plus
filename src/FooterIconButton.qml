@@ -73,6 +73,18 @@ Item {
                 context.lineTo(13.5, 4);
                 context.lineTo(8.5, 9);
                 context.closePath();
+            } else if (control.iconName === "pin") {
+                // A pushpin: the cap, the body flaring out, and the needle.
+                context.moveTo(5, 2.5);
+                context.lineTo(11, 2.5);
+                context.moveTo(6.5, 2.5);
+                context.lineTo(6.5, 6.5);
+                context.lineTo(4, 9.5);
+                context.lineTo(12, 9.5);
+                context.lineTo(9.5, 6.5);
+                context.lineTo(9.5, 2.5);
+                context.moveTo(8, 9.5);
+                context.lineTo(8, 14);
             } else if (control.iconName === "trash") {
                 context.moveTo(2.5, 4.5);
                 context.lineTo(13.5, 4.5);

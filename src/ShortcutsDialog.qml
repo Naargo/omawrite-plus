@@ -20,6 +20,7 @@ Dialog {
         { key: "Ctrl+Shift+F", desc: "Search Notes" },
         { key: "Ctrl+L", desc: "Edit Title" },
         { key: "Ctrl+\\", desc: "Show / Hide Sidebar" },
+        { key: "Ctrl+Shift+P", desc: "Pin / Unpin Note" },
         { key: "Ctrl+Shift+Backspace", desc: "Delete Note" },
         { key: "1200 + 340 =", desc: "Calculate" },
         { key: "Ctrl+S", desc: "Save Now (notes save as you type)" },

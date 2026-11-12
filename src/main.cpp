@@ -14,17 +14,42 @@
 #include <QTextStream>
 
 #include "backend.h"
+#include "capture.h"
 #include "cli.h"
 #include "notes.h"
 #include "systemtheme.h"
 
-#define OMAWRITE_VERSION "0.2.1"
+#define OMAWRITE_VERSION "0.3.0"
 
 int main(int argc, char *argv[]) {
     // Answered before the application exists, so they need no display.
     if (const std::optional<int> exitCode =
             Cli::handleArguments(argc, argv, QStringLiteral(OMAWRITE_VERSION)))
         return *exitCode;
+
+    // `omawrite-plus add TEXT...` jots a line into the idea jar: through the
+    // open app when there is one, straight into the note's file otherwise.
+    if (argc > 2 && QString::fromLocal8Bit(argv[1]) == QLatin1String("add")) {
+        QCoreApplication core(argc, argv);
+        core.setOrganizationName(QStringLiteral("Omacom"));
+        core.setApplicationName(QStringLiteral("omawrite-plus"));
+        QStringList words;
+        for (int index = 2; index < argc; ++index)
+            words.append(QString::fromLocal8Bit(argv[index]));
+        const QString line = words.join(QLatin1Char(' ')).simplified();
+        if (line.isEmpty())
+            return 0;
+        if (Capture::sendToRunningApp(line))
+            return 0;
+        Notes notes(nullptr, QDir(QStandardPaths::writableLocation(
+                                      QStandardPaths::AppDataLocation)).filePath(QStringLiteral("notes")));
+        const QString jar = notes.addToJar(line);
+        if (jar.isEmpty()) {
+            QTextStream(stderr) << QStringLiteral("Could not add to the idea jar.\n");
+            return 1;
+        }
+        return 0;
+    }
 
     // `omawrite-plus import FILE...` copies Markdown files in as notes,
     // without a window, so a script or an agent can fill the library.
@@ -123,6 +148,10 @@ int main(int argc, char *argv[]) {
     backend.setParentWindow(qobject_cast<QWindow *>(engine.rootObjects().constFirst()));
 
     notes.start();
+
+    // Quick captures from `omawrite-plus add` arrive here while it is open.
+    CaptureServer capture(&notes);
+    capture.listen();
 
     return app.exec();
 }

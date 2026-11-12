@@ -123,6 +123,13 @@ ApplicationWindow {
     Connections {
         target: notes
 
+        // A quick capture for the note on screen, added as an edit.
+        function onAppendToEditor(item) {
+            var current = editor.text;
+            var separator = current.length > 0 && !current.endsWith("\n") ? "\n" : "";
+            editor.insert(editor.length, separator + item);
+        }
+
         function onCurrentChanged() {
             if (titleInput.text !== notes.currentTitle)
                 titleInput.text = notes.currentTitle;
@@ -380,6 +387,11 @@ ApplicationWindow {
     Shortcut {
         sequence: "Ctrl+L"
         onActivated: titleInput.forceActiveFocus()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+P"
+        onActivated: notes.togglePinned(notes.currentId)
     }
 
     Shortcut {
@@ -741,7 +753,7 @@ ApplicationWindow {
 
                 Column {
                     anchors.left: parent.left
-                    anchors.right: deleteButton.left
+                    anchors.right: rowButtons.left
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.leftMargin: win.scaledSize(12)
                     anchors.rightMargin: win.scaledSize(8)
@@ -771,16 +783,34 @@ ApplicationWindow {
                     }
                 }
 
-                FooterIconButton {
-                    id: deleteButton
+                // A pinned note keeps its pin showing; hovering any note
+                // offers the pin and the bin.
+                Row {
+                    id: rowButtons
                     anchors.right: parent.right
                     anchors.rightMargin: win.scaledSize(10)
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: rowHover.hovered
-                    iconName: "trash"
-                    iconColor: win.mutedColor
-                    tooltip: qsTr("Delete Note")
-                    onClicked: win.askToDeleteNote(noteRow.modelData.id)
+                    spacing: win.scaledSize(10)
+
+                    FooterIconButton {
+                        id: pinButton
+                        objectName: "pinButton"
+                        visible: rowHover.hovered || noteRow.modelData.pinned
+                        iconName: "pin"
+                        iconColor: noteRow.modelData.pinned ? win.textColor : win.mutedColor
+                        tooltip: noteRow.modelData.pinned ? qsTr("Unpin (Ctrl+Shift+P)")
+                                                          : qsTr("Pin to Top (Ctrl+Shift+P)")
+                        onClicked: notes.togglePinned(noteRow.modelData.id)
+                    }
+
+                    FooterIconButton {
+                        id: deleteButton
+                        visible: rowHover.hovered
+                        iconName: "trash"
+                        iconColor: win.mutedColor
+                        tooltip: qsTr("Delete Note")
+                        onClicked: win.askToDeleteNote(noteRow.modelData.id)
+                    }
                 }
             }
         }
@@ -1167,21 +1197,79 @@ ApplicationWindow {
                 }
 
                 // Ticks the checklist item on the caret's line, or unticks it.
-                // A line that is not a checklist item becomes one.
+                // A line that is not a checklist item becomes one. Like Notes
+                // on the Mac, ticked items sink below the open ones in their
+                // list (sub-items travel with their item), and the caret stays
+                // on the same line, so ticking again works down the list.
                 function toggleCheck() {
                     forceActiveFocus();
-                    var from = text.lastIndexOf("\n", cursorPosition - 1) + 1;
-                    var lineBreak = text.indexOf("\n", cursorPosition);
-                    var line = text.slice(from, lineBreak < 0 ? text.length : lineBreak);
-                    var m = line.match(/^(\s*[-+*]\s+\[)([ xX])\]/);
+                    var lines = text.split("\n");
+                    var lineIndex = text.slice(0, cursorPosition).split("\n").length - 1;
+                    var itemRe = /^(\s*)([-+*]\s+\[)([ xX])\]/;
+                    var m = lines[lineIndex].match(itemRe);
                     if (!m) {
                         toggleList("check");
                         return;
                     }
-                    var caret = cursorPosition;
-                    var at = from + m[1].length;
-                    EditorMutations.replaceRange(editor, at, at + 1, m[2] === " " ? "x" : " ");
-                    cursorPosition = caret;
+                    var column = cursorPosition - (text.lastIndexOf("\n", cursorPosition - 1) + 1);
+                    var indent = m[1].length;
+                    var flipped = m[3] === " " ? "x" : " ";
+                    var original = lines.slice();
+                    lines[lineIndex] = m[1] + m[2] + flipped + "]"
+                        + lines[lineIndex].slice(m[0].length);
+
+                    var indentOf = function(line) { return line.match(/^\s*/)[0].length; };
+                    var isItem = function(line) {
+                        var im = line.match(itemRe);
+                        return im && im[1].length === indent;
+                    };
+                    var isChild = function(line) {
+                        return line.trim().length > 0 && indentOf(line) > indent;
+                    };
+                    // The run of items at this level around the caret.
+                    var first = lineIndex;
+                    while (first > 0 && (isItem(lines[first - 1]) || isChild(lines[first - 1])))
+                        --first;
+                    while (!isItem(lines[first]))
+                        ++first;
+                    var last = lineIndex;
+                    while (last + 1 < lines.length
+                           && (isItem(lines[last + 1]) || isChild(lines[last + 1])))
+                        ++last;
+
+                    var groups = [];
+                    var moved = null;
+                    for (var i = first; i <= last; ++i) {
+                        if (isItem(lines[i]))
+                            groups.push([]);
+                        groups[groups.length - 1].push(lines[i]);
+                        if (i === lineIndex)
+                            moved = groups[groups.length - 1];
+                    }
+                    // The item just changed goes to the end of its side, so
+                    // ticked items line up in the order they were done.
+                    var ticked = function(group) { return group[0].match(itemRe)[3] !== " "; };
+                    var others = groups.filter(function(g) { return g !== moved; });
+                    var open = others.filter(function(g) { return !ticked(g); });
+                    var done = others.filter(ticked);
+                    if (ticked(moved))
+                        done.push(moved);
+                    else
+                        open.push(moved);
+                    var ordered = open.concat(done);
+                    var block = [].concat.apply([], ordered);
+                    lines.splice.apply(lines, [first, block.length].concat(block));
+
+                    var from = 0;
+                    for (var k = 0; k < first; ++k)
+                        from += original[k].length + 1;
+                    var oldBlock = original.slice(first, last + 1).join("\n");
+                    var newBlock = block.join("\n");
+                    EditorMutations.replaceRange(editor, from, from + oldBlock.length, newBlock);
+                    var lineStart = 0;
+                    for (var j = 0; j < lineIndex; ++j)
+                        lineStart += lines[j].length + 1;
+                    cursorPosition = lineStart + Math.min(column, lines[lineIndex].length);
                 }
 
                 // Makes the lines the caret or selection touches a Title (1),

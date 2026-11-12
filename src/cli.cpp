@@ -5,11 +5,13 @@
 QString Cli::usage() {
     return QStringLiteral(
         "Usage: omawrite-plus\n"
+        "       omawrite-plus add TEXT...\n"
         "       omawrite-plus import FILE...\n"
         "\n"
         "Opens your notes. Notes are kept inside the app and save as you type.\n"
         "`import` copies Markdown files in as new notes, titled after each file,\n"
-        "and leaves the files themselves alone.\n"
+        "and leaves the files themselves alone. `add` jots a line onto the end\n"
+        "of the note titled \"Idea jar\" (or the first pinned note).\n"
         "\n"
         "Options:\n"
         "  -h, --help     Show this message and exit\n"

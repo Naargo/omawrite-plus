@@ -28,6 +28,7 @@ public:
         QString preview;
         QDateTime created;
         QDateTime modified;
+        bool pinned = false;
     };
 
     Notes(Backend *backend, const QString &directory, QObject *parent = nullptr);
@@ -45,6 +46,9 @@ public:
     Q_INVOKABLE void openNote(const QString &id);
     Q_INVOKABLE void deleteNote(const QString &id);
     Q_INVOKABLE void setTitle(const QString &title);
+    // Pinned notes stay at the top of the sidebar, newest first among them.
+    Q_INVOKABLE void togglePinned(const QString &id);
+    Q_INVOKABLE bool isPinned(const QString &id) const;
     // The ids of the notes whose title or text holds the query, any case.
     Q_INVOKABLE QStringList search(const QString &query) const;
     // What the sidebar and the window title call a note.
@@ -55,12 +59,20 @@ public:
     // reason in error.
     QString importFile(const QString &path, QString *error);
 
+    // Adds "- line" to the end of the idea jar: the note titled "Idea jar",
+    // else the first pinned note, else a new "Idea jar". The note open in the
+    // editor gets it as an edit (appendToEditor); any other note's file is
+    // written. Returns the jar's id, or an empty string if it failed.
+    QString addToJar(const QString &line);
+
     QUrl urlFor(const QString &id) const;
     static QString previewOf(const QString &text);
 
 signals:
     void notesChanged();
     void currentChanged();
+    // Asks the editor to add text to the end of the note it has open.
+    void appendToEditor(const QString &text);
 
 private:
     void load();

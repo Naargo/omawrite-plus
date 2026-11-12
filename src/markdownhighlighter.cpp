@@ -380,8 +380,11 @@ void MarkdownHighlighter::highlightMarkers(const QString &text) {
         static const QRegularExpression headingRe(QStringLiteral("^(#{1,6})(\\s+)(.*)$"));
         const QRegularExpressionMatch heading = headingRe.match(text);
         if (heading.hasMatch()) {
+            // Like the emphasis markers, the #s show only while the caret is
+            // on the line, so a heading reads as a heading everywhere else.
+            const bool caretHere = !m_caret.isNull() && m_caret.block() == currentBlock();
             setFormat(0, heading.capturedLength(1) + heading.capturedLength(2),
-                      m_markerFormat);
+                      caretHere ? m_markerFormat : m_hiddenMarkerFormat);
             const int level = heading.capturedLength(1);
             setFormat(heading.capturedStart(3), heading.capturedLength(3),
                       level <= 3 ? m_headingLevelFormats[level - 1] : m_headingFormat);

@@ -1,4 +1,4 @@
-QT += core gui concurrent widgets printsupport qml quick quickcontrols2 quickdialogs2 dbus
+QT += core gui concurrent network widgets printsupport qml quick quickcontrols2 quickdialogs2 dbus
 
 CONFIG += c++17 release
 TARGET = omawrite-plus
@@ -9,6 +9,7 @@ HEADERS += \
     src/calc.h \
     src/cli.h \
     src/notes.h \
+    src/capture.h \
     src/markdownhighlighter.h \
     src/systemtheme.h
 
@@ -18,6 +19,7 @@ SOURCES += \
     src/calc.cpp \
     src/cli.cpp \
     src/notes.cpp \
+    src/capture.cpp \
     src/markdownhighlighter.cpp \
     src/systemtheme.cpp
 

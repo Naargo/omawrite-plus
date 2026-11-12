@@ -41,6 +41,7 @@ QVariantList Notes::notes() const {
             {QStringLiteral("title"), displayTitle(note.id)},
             {QStringLiteral("preview"), note.preview},
             {QStringLiteral("modified"), note.modified},
+            {QStringLiteral("pinned"), note.pinned},
         });
     }
     return list;
@@ -203,6 +204,21 @@ void Notes::setTitle(const QString &title) {
     emit notesChanged();
 }
 
+void Notes::togglePinned(const QString &id) {
+    const int index = indexOf(id);
+    if (index < 0)
+        return;
+    m_notes[index].pinned = !m_notes.at(index).pinned;
+    sortByModified();
+    writeIndex();
+    emit notesChanged();
+}
+
+bool Notes::isPinned(const QString &id) const {
+    const int index = indexOf(id);
+    return index >= 0 && m_notes.at(index).pinned;
+}
+
 QStringList Notes::search(const QString &query) const {
     QStringList ids;
     const QString needle = query.trimmed();
@@ -241,6 +257,57 @@ QString Notes::importFile(const QString &path, QString *error) {
     writeIndex();
     emit notesChanged();
     return id;
+}
+
+QString Notes::addToJar(const QString &line) {
+    QString jar;
+    for (const Note &note : std::as_const(m_notes)) {
+        if (note.title.trimmed().compare(QStringLiteral("Idea jar"), Qt::CaseInsensitive) == 0) {
+            jar = note.id;
+            break;
+        }
+    }
+    if (jar.isEmpty()) {
+        for (const Note &note : std::as_const(m_notes)) {
+            if (note.pinned) {
+                jar = note.id;
+                break;
+            }
+        }
+    }
+    if (jar.isEmpty()) {
+        jar = newId();
+        QSaveFile file(urlFor(jar).toLocalFile());
+        if (!file.open(QIODevice::WriteOnly) || !file.commit())
+            return QString();
+        const QDateTime now = QDateTime::currentDateTime();
+        m_notes.prepend({jar, QStringLiteral("Idea jar"), QString(), now, now});
+    }
+
+    const QString item = QStringLiteral("- ") + line.simplified();
+    if (m_backend && jar == m_currentId && m_backend->fileUrl() == urlFor(jar)) {
+        // The editor holds the newest text; add to that and let it save.
+        emit appendToEditor(item);
+        m_backend->showStatus(tr("Added to %1").arg(displayTitle(jar)));
+        return jar;
+    }
+
+    QString text = readText(jar);
+    if (!text.isEmpty() && !text.endsWith(QLatin1Char('\n')))
+        text += QLatin1Char('\n');
+    text += item;
+    QSaveFile file(urlFor(jar).toLocalFile());
+    const QByteArray bytes = text.toUtf8();
+    if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit())
+        return QString();
+
+    Note &note = m_notes[indexOf(jar)];
+    note.preview = previewOf(text);
+    note.modified = QDateTime::currentDateTime();
+    sortByModified();
+    writeIndex();
+    emit notesChanged();
+    return jar;
 }
 
 QUrl Notes::urlFor(const QString &id) const {
@@ -282,7 +349,8 @@ void Notes::load() {
                             QDateTime::fromString(entry.value(QStringLiteral("created")).toString(),
                                                   Qt::ISODate),
                             QDateTime::fromString(entry.value(QStringLiteral("modified")).toString(),
-                                                  Qt::ISODate)});
+                                                  Qt::ISODate),
+                            entry.value(QStringLiteral("pinned")).toBool()});
         }
     }
 
@@ -314,6 +382,7 @@ bool Notes::writeIndex() {
             {QStringLiteral("title"), note.title},
             {QStringLiteral("created"), note.created.toString(Qt::ISODateWithMs)},
             {QStringLiteral("modified"), note.modified.toString(Qt::ISODateWithMs)},
+            {QStringLiteral("pinned"), note.pinned},
         });
     }
     QSaveFile file(QDir(m_directory).filePath(indexFileName));
@@ -375,6 +444,8 @@ bool Notes::isBlank(const QString &id) const {
 
 void Notes::sortByModified() {
     std::stable_sort(m_notes.begin(), m_notes.end(), [](const Note &a, const Note &b) {
+        if (a.pinned != b.pinned)
+            return a.pinned;
         return a.modified > b.modified;
     });
 }
